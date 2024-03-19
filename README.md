@@ -1,5 +1,4 @@
-
-# Connections Game
+# Connections
 
 The Connections Game is a web application inspired by the NY Times game, offering players a challenging and engaging way to test their ability to identify connections between words. Built with Flask and React, this game challenges players to select sets of words that share a common theme from a grid. Success reveals interesting connections and further enriches the gameplay experience.
 
@@ -23,8 +22,8 @@ The Connections Game is a web application inspired by the NY Times game, offerin
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/connections-game.git
-cd connections-game
+git clone https://github.com/chrooks/Connections.git
+cd Connections
 ```
 
 2. **Set up the Python virtual environment**
@@ -60,6 +59,24 @@ Your application should now be running on `localhost:3000` (frontend) and the Fl
 - Press the "Play" button to generate a new grid of words.
 - Select four words that you believe are connected and submit your guess.
 - If correct, the words will be removed and their connection revealed. If incorrect, try again until you find all connections or run out of guesses.
+
+## Technical Details
+
+### Technology Stack
+
+- **Frontend**:
+
+  - **Vite**: Used for bootstrapping the frontend, offering a fast and efficient development experience with React.
+  - **React**: Powers the dynamic user interface, making the game interactive and responsive.
+  - **TypeScript**: Provides strong typing for React components and utilities, enhancing code quality and maintainability.
+
+- **Backend**:
+
+  - **Flask**: A lightweight Python framework used for backend logic and API endpoints, facilitating the game's core functionalities.
+  - **Python**: The primary programming language for backend development, chosen for its simplicity and effectiveness.
+
+- **Word and Connection Generation**:
+  - **GPT**: Utilized to dynamically generate the words that compose the game's grid and their relationships, ensuring a unique and challenging experience every game.
 
 ## Contributing
 
