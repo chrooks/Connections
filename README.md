@@ -1,64 +1,70 @@
-# Connections
 
-## Project Breakdown
+# Connections Game
 
-**Frontend:**
+The Connections Game is a web application inspired by the NY Times game, offering players a challenging and engaging way to test their ability to identify connections between words. Built with Flask and React, this game challenges players to select sets of words that share a common theme from a grid. Success reveals interesting connections and further enriches the gameplay experience.
 
-- **Technology:** React.js
-- **Main Features:**
-  - Navigation to the game page and a play button.
-  - A 4x4 grid display for the game tiles with words.
-  - Interaction for selecting tiles and submitting guesses.
-  - Feedback mechanism for correct/incorrect guesses.
-  - Display for remaining guesses and game over condition.
+## Features
 
-**Backend:**
+- **Dynamic Word Grids**: Every game generates a unique set of words and connections, ensuring a fresh challenge for players every time.
+- **Game State Management**: Players have a limited number of guesses to find all connections, with the game tracking and displaying remaining guesses.
+- **Responsive Design**: A user-friendly interface that adjusts to various screen sizes for an optimal playing experience.
 
-- **Technology:** Flask
-- **Main Features:**
-  - API to generate game tiles with words and connections (using your GPT prompt).
-  - Mechanism to validate player guesses and manage game state (correct guesses, incorrect guesses, and game over logic).
-  - Database interaction for storing game states or user progress (if needed for future features like leaderboards or user accounts).
+## Getting Started
 
-### Step-by-Step Implementation Guide
+### Prerequisites
 
-**Step 1: Setup Your Project Environment**
+- Python 3.6+
+- Node.js and npm
+- Flask
+- React
 
-- Initialize a new React app (using Create React App for simplicity).
-- Set up a Python backend using Flask or Django (Flask for simplicity, Django for more built-in features).
+### Installation
 
-**Step 2: Design Your Game Logic and Data Structure**
+1. **Clone the repository**
 
-- Define the data structure for your game grid, player guesses, and validations.
-- Implement the game logic on the backend to handle the generation of words, connections, and validation of guesses.
+```bash
+git clone https://github.com/yourusername/connections-game.git
+cd connections-game
+```
 
-**Step 3: Develop the Frontend**
+2. **Set up the Python virtual environment**
 
-- Implement the game interface in React with components for the game grid, play button, submit guess button, and feedback displays.
-- Use state management (React's useState or useReducer hooks) to handle game states on the frontend.
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+pip install -r backend/requirements.txt
+```
 
-**Step 4: Backend API Development**
+3. **Start the Flask backend**
 
-- Develop an API endpoint to generate the game grid based on the GPT prompt.
-- Create API endpoints to handle guesses, validate them, and manage game state (number of incorrect guesses, game over condition).
+```bash
+cd backend
+export FLASK_APP=app.py  # On Windows use `set FLASK_APP=app.py`
+export FLASK_ENV=development  # On Windows use `set FLASK_ENV=development`
+flask run
+```
 
-**Step 5: Integrating Frontend with Backend**
+4. **Install and run the React frontend**
 
-- Use React to fetch from your backend API to populate the game grid.
-- Handle user interactions (tile selections, guess submissions) and communicate with the backend for validation and game state updates.
+```bash
+cd ../frontend
+npm install
+npm start
+```
 
-**Step 6: Testing and Debugging**
+Your application should now be running on `localhost:3000` (frontend) and the Flask backend on `localhost:5000`.
 
-- Test the game thoroughly to ensure all interactions work as expected and debug any issues.
+### Playing the Game
 
-**Step 7: Deployment**
+- Navigate to `http://localhost:3000` in your web browser to start playing.
+- Press the "Play" button to generate a new grid of words.
+- Select four words that you believe are connected and submit your guess.
+- If correct, the words will be removed and their connection revealed. If incorrect, try again until you find all connections or run out of guesses.
 
-- Deploy your React application and Python backend to a web server or cloud service (like Heroku, AWS, or Vercel for the frontend).
+## Contributing
 
-### Additional Suggestions
+Contributions are welcome! Please feel free to submit a pull request or open an issue for any improvements or bug fixes.
 
-- **User Experience:** Consider adding animations or visual cues for feedback on correct/incorrect guesses.
-- **Scalability:** If planning for multiplayer or high user volume, ensure your backend is scalable.
-- **Security:** Implement security best practices, especially if you plan to add user accounts or handle sensitive data.
+## License
 
-If you need detailed assistance on any specific part of this guide, such as code examples for React components, Python API endpoints, or integrating your GPT prompt for generating words and connections, feel free to ask!
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
