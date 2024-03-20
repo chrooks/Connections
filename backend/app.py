@@ -1,7 +1,7 @@
-import json
 import random
 import uuid
 from flask import Flask, request, jsonify
+
 app = Flask(__name__)
 
 # Placeholder for in-memory game state
@@ -10,6 +10,14 @@ games = {}
 
 
 def call_gpt_api(prompt):
+    """
+    Simulates calling a GPT-based API to generate words and their connections based on the given prompt.
+
+    This is a mock function for demonstration purposes and returns a hardcoded response.
+
+    :param prompt: The prompt to send to the GPT API.
+    :return: A string containing categories and items (words) related to those categories.
+    """
     # Mock response for demonstration
     response = """
     Apple, Banana, Cherry, Date: Fruits
@@ -21,9 +29,17 @@ def call_gpt_api(prompt):
 
 
 def generate_game_grid():
+    """
+    Generates the game grid and relationships by reading a prompt from 'prompt.txt',
+    calling a GPT API with the prompt, and parsing the API's response.
+
+    :return: A tuple containing the game grid (list of words) and the relationships
+             dictionary mapping word tuples to their connection (relationship).
+             Returns empty list and dictionary if there's an error reading the file or parsing.
+    """
     try:
-        # Attempt to open and read the prompt from 'prompt.txt'
-        with open('backend/prompt.txt', 'r') as file:
+        # Attempt to open and read the prompt from 'prompt.txt' with UTF-8 encoding
+        with open('backend/prompt.txt', 'r', encoding='utf-8') as file:
             prompt = file.read().strip()
     except FileNotFoundError:
         # Handle the case where 'prompt.txt' does not exist
@@ -49,8 +65,11 @@ def generate_game_grid():
         grid.extend(words_list)
         relationships[tuple(words_list)] = relationship
 
+    # Shuffle the grid for game variability
     random.shuffle(grid)
-    print(json.dumps(relationships, indent=4))
+
+    # Optionally print relationships for debugging/verification
+    # print(json.dumps(relationships, indent=4))
 
     return grid, relationships
 
@@ -63,6 +82,30 @@ def validate_game_id(game_id):
     :return: True if the game exists, False otherwise.
     """
     return game_id in games
+
+
+def validate_guess(game_id, guess):
+    """
+    Validates whether the provided guess (a list of four words) forms a valid relationship
+    as per the game's definitions.
+
+    :param game_id: The ID of the game session where the guess is being made.
+    :param guess: A list of four words that represent the player's guess.
+    :return: A tuple (is_valid, message). `is_valid` is a boolean indicating whether the guess was valid.
+             `message` provides feedback or the relationship if the guess is correct.
+    """
+    # Ensure the game exists and the guess matches a known relationship
+    if validate_game_id(game_id):
+        return False, "Game ID not found."
+
+    relationships = games[game_id]['relationships']
+    for words, relation in relationships.items():
+        if set(guess) == set(words):
+            # Correct guess, remove this relationship from the game state to prevent reuse
+            del relationships[words]
+            return True, f"Correct! The connection is: {relation}"
+
+    return False, "Incorrect guess. Try again."
 
 
 def parse_and_validate_request(required_fields):
@@ -121,8 +164,11 @@ def generate_grid():
 @app.route('/submit-guess', methods=['POST'])
 def submit_guess():
     """
-    Processes a player's guess, updating the game state accordingly.
-    Requires JSON payload with gameId and the player's guess.
+    Receives a guess from the player and validates it against the game's relationships.
+    Updates the game state accordingly based on the guess's validity.
+
+    :return: A JSON response indicating whether the guess was correct or not, 
+             and relevant game state information.
     """
     required_fields = ['gameId', 'guess']
     data, error = parse_and_validate_request(required_fields)
@@ -134,21 +180,25 @@ def submit_guess():
         return jsonify({"error": "Invalid game ID."}), 404
 
     guess = data['guess']
-    # TODO: Implement guess validation logic
 
-    # Placeholder for guess validation result
-    is_correct = True
+    # Validate the guess format (must be a list of four words)
+    if not isinstance(guess, list) or len(guess) != 4:
+        return jsonify({"error": "Invalid guess format. A guess should be a list of four words."}), 400
 
-    # Update game state based on guess validation result
-    # This is simplified; actual implementation needed
-    if is_correct:
-        return jsonify({"success": True, "message": "Correct guess!"})
-    else:
+    is_valid, message = validate_guess(game_id, guess)
+
+    if not is_valid:
         games[game_id]['remainingGuesses'] -= 1
         if games[game_id]['remainingGuesses'] <= 0:
             games[game_id]['gameOver'] = True
             return jsonify({"success": False, "message": "Game over!"})
-        return jsonify({"success": False, "message": "Incorrect guess. Try again."})
+
+    return jsonify({
+        "success": is_valid,
+        "message": message,
+        "remainingGuesses": games[game_id]['remainingGuesses'],
+        "gameOver": games[game_id]['gameOver']
+    })
 
 
 @app.route('/game-status', methods=['GET'])
@@ -191,6 +241,37 @@ def restart_game():
     }
 
     return jsonify({"success": True, "message": "Game restarted."})
+
+
+@app.route('/shuffle-board', methods=['POST'])
+def shuffle_board():
+    """
+    Shuffles the words on the current game board for a specified game session.
+
+    This endpoint expects a JSON payload with a 'gameId' key identifying the game
+    to shuffle. It randomizes the order of the words in the game's grid while
+    preserving the underlying relationships and game state.
+
+    :return: A JSON response containing the shuffled grid for the game session
+             or an error message if the game ID is not found.
+    """
+    required_fields = ['gameId']
+    data, error = parse_and_validate_request(required_fields)
+    if error:
+        return jsonify({"error": error}), 400
+
+    game_id = data['gameId']
+    if game_id not in games:
+        return jsonify({"error": "Game ID not found."}), 404
+
+    # Shuffle the grid while maintaining the game state
+    random.shuffle(games[game_id]['grid'])
+
+    return jsonify({
+        "success": True,
+        "message": "Board shuffled successfully.",
+        "grid": games[game_id]['grid']
+    })
 
 
 if __name__ == '__main__':
