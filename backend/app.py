@@ -6,6 +6,7 @@ app = Flask(__name__)
 
 # Placeholder for in-memory game state
 # In-memory storage for game states; in production, consider using a database.
+# TODO: use a database here instead of storing in-memory
 games = {}
 
 
@@ -13,12 +14,13 @@ def call_gpt_api(prompt):
     """
     Simulates calling a GPT-based API to generate words and their connections based on the given prompt.
 
-    This is a mock function for demonstration purposes and returns a hardcoded response.
+    This is a mock function for demonstration purposeIntas and returns a hardcoded response.
 
     :param prompt: The prompt to send to the GPT API.
     :return: A string containing categories and items (words) related to those categories.
     """
     # Mock response for demonstration
+    # TODO: actually call the GPT API here
     response = """
     Apple, Banana, Cherry, Date: Fruits
     Python, Java, C++, Rust: Programming Languages
@@ -233,14 +235,19 @@ def restart_game():
     if not validate_game_id(game_id):
         return jsonify({"error": "Invalid game ID."}), 404
 
-    # TODO: Implement game reset logic similar to generate_grid
+    # Use the generate_game_grid method to create a new grid and relationships
+    grid, relationships = generate_game_grid()
+
+    # Update the game state with the new grid, reset remaining guesses, and set gameOver to False
     games[game_id] = {
-        "grid": [],  # TODO: Generate new grid logic
+        "grid": grid,
+        "relationships": relationships,
         "remainingGuesses": 4,
         "gameOver": False
     }
 
-    return jsonify({"success": True, "message": "Game restarted."})
+    # Respond with success message and include the new grid for client-side rendering
+    return jsonify({"success": True, "message": "Game restarted.", "gameId": game_id, "grid": grid}), 200
 
 
 @app.route('/shuffle-board', methods=['POST'])

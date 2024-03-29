@@ -84,3 +84,16 @@ Error Handling: The application handles potential errors, such as missing prompt
 Future Work: The application requires further development for dynamic word grid generation via actual GPT API calls, implementation of guess validation logic, and transitioning from in-memory storage to a database for persistence.
 
 This structure sets a solid foundation for a word-connection game, with placeholders and TODOs indicating areas needing further development or integration with external APIs and databases for full functionality.
+
+
+
+# Notes:
+
+Selected words stay selected after shuffling
+Words fade in after shuffling
+Selections persist between sessions -> which words have been selected to guess is also stored in the backend
+Once you've selected 4 words -> Submit button turns black
+After pressing Submit
+- the 4 selected word boxes jump from top left to bottom right
+- the Submit button turns back to grey
+- If incorrect, a mistake indicator shrinks
