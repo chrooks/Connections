@@ -16,7 +16,7 @@
 
 - **Technology:** Flask
 - **Main Features:**
-  - API to generate game tiles with words and connections (using your GPT prompt).
+  - API to generate game tiles with words and connections (using your LLM prompt).
   - Mechanism to validate player guesses and manage game state (correct guesses, incorrect guesses, and game over logic).
   - Database interaction for storing game states or user progress (if needed for future features like leaderboards or user accounts).
 
@@ -39,7 +39,7 @@
 
 **Step 4: Backend API Development**
 
-- Develop an API endpoint to generate the game grid based on the GPT prompt.
+- Develop an API endpoint to generate the game grid based on the LLM prompt.
 - Create API endpoints to handle guesses, validate them, and manage game state (number of incorrect guesses, game over condition).
 
 **Step 5: Integrating Frontend with Backend**
@@ -67,9 +67,9 @@ Your Flask application is designed to support a game where players guess connect
 
 Game State Storage: Utilizes an in-memory dictionary (games) to store game states. Each game state includes the game grid, relationships between words, remaining guesses, and a flag to indicate if the game is over. This is a temporary solution, and a database is recommended for production use.
 
-Mock GPT API Call: Implements call_gpt_api(prompt), a mock function returning a fixed set of words and their categories to simulate generating word grids and their connections via a GPT model.
+Mock LLM API Call: Implements call_llm_api(prompt), a mock function returning a fixed set of words and their categories to simulate generating word grids and their connections via a LLM model.
 
-Game Grid Generation: generate_game_grid() reads a prompt from backend/prompt.txt, simulates a call to the GPT API, and parses the response to create a game grid and map words to their relationships. It handles file not found and other exceptions, shuffles the grid for randomness, and ensures no leading or trailing whitespace in words or relationships.
+Game Grid Generation: generate_game_grid() reads a prompt from backend/prompt.txt, simulates a call to the LLM API, and parses the response to create a game grid and map words to their relationships. It handles file not found and other exceptions, shuffles the grid for randomness, and ensures no leading or trailing whitespace in words or relationships.
 
 Request Parsing and Validation: parse_and_validate_request(required_fields) checks if the necessary fields are present in the request's JSON payload, returning the data and any errors encountered.
 
@@ -81,11 +81,9 @@ Endpoints:
 /restart-game (POST): Restarts a game with the same game ID, resetting the grid and guesses. It requires further implementation for generating a new grid.
 Error Handling: The application handles potential errors, such as missing prompt.txt, invalid game IDs, and incomplete request payloads, providing appropriate feedback to the client.
 
-Future Work: The application requires further development for dynamic word grid generation via actual GPT API calls, implementation of guess validation logic, and transitioning from in-memory storage to a database for persistence.
+Future Work: The application requires further development for dynamic word grid generation via actual LLM API calls, implementation of guess validation logic, and transitioning from in-memory storage to a database for persistence.
 
 This structure sets a solid foundation for a word-connection game, with placeholders and TODOs indicating areas needing further development or integration with external APIs and databases for full functionality.
-
-
 
 # Notes:
 
@@ -94,6 +92,7 @@ Words fade in after shuffling
 Selections persist between sessions -> which words have been selected to guess is also stored in the backend
 Once you've selected 4 words -> Submit button turns black
 After pressing Submit
+
 - the 4 selected word boxes jump from top left to bottom right
 - the Submit button turns back to grey
 - If incorrect, a mistake indicator shrinks

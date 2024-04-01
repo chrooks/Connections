@@ -76,7 +76,7 @@ Your application should now be running on `localhost:3000` (frontend) and the Fl
   - **Python**: The primary programming language for backend development, chosen for its simplicity and effectiveness.
 
 - **Word and Connection Generation**:
-  - **GPT**: Utilized to dynamically generate the words that compose the game's grid and their relationships, ensuring a unique and challenging experience every game.
+  - **LLM**: Utilized to dynamically generate the words that compose the game's grid and their relationships, ensuring a unique and challenging experience every game.
 
 ## Contributing
 
