@@ -1,0 +1,25 @@
+$level-1: #f9df6d; // Yellow shade
+$level-2: #a0c35a; // Light green shade
+$level-3: #b0c4ef; // Light blue shade
+$level-4: #ba81c5; // Mauve shade
+
+$unselected-card: #efefe6;
+$selected-card: #5a594e;
+
+$unselected-button: #7f7f7f;
+
+$black: #000000;
+$white: #ffffff;
+
+@font-face {
+  font-family: "Maven Pro";
+  src: url("../src/assets/fonts/MavenPro.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Nunito Sans";
+  src: url("../src/assets/fonts/NunitoSans.ttf") format("truetype");
+}
+
+$font-primary: "Maven Pro", sans-serif;
+$font-title: "Nunito Sans", sans-serif;

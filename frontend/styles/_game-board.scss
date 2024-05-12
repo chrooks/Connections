@@ -1,0 +1,52 @@
+.game-instructions {
+  font-size: 1.125rem;
+  color: $black;
+}
+.mistake-tracker-label {
+  font-size: 1rem;
+  color: $black;
+}
+
+.mistake-tracker-bubble {
+  width: 1rem; // 16px in rems (1rem = 16px)
+  height: 1rem; // 16px in rems (1rem = 16px)
+  border-radius: 50%; // Circle shape
+  background-color: $unselected-button;
+  display: block;
+  margin: 0.1rem 0.25rem;
+}
+
+.word-card {
+  width: 9.375rem; // 150px in rems (1rem = 16px)
+  height: 5rem; // 80px in rems (1rem = 16px)
+  border-radius: 0.25rem; // Curved border
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0.5rem; // 8px in rems (1rem = 16px)
+  font-size: 1.25rem; // 20px in rems (1rem = 16px)
+  font-weight: 600; // Semi-bold
+  text-transform: uppercase; // Text in caps
+  background-color: $unselected-card;
+}
+
+.word-card.word-card-selected {
+  background-color: $selected-card;
+  color: $white;
+}
+
+.button-bar {
+  button {
+    border: 1px solid $black;
+    background-color: $white;
+    border-radius: 2rem; // Curved border
+    color: $black;
+    font-size: 1rem;
+    padding: 0.4rem 0.6rem;
+  }
+  button.deselect-button {
+    svg {
+      padding: 0 2px;
+    }
+  }
+}

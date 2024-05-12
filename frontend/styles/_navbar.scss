@@ -1,0 +1,32 @@
+.navbar-upper {
+  border-bottom: 1px solid $black;
+}
+.navbar-lower {
+  border-bottom: 1px solid $black;
+}
+
+.nav-buttons {
+  width: 10%;
+  button {
+    border: none;
+    background-color: transparent;
+    padding: 1rem 1rem;
+    &:hover {
+      background-color: $unselected-card;
+    }
+  }
+}
+
+.connections-logo {
+  font-size: 2.5rem; // 42px in rems (assuming 1rem = 16px)
+  font-family: $font-title;
+  color: $black;
+  font-weight: 800; // Extrabold
+  margin-right: 1rem;
+}
+
+.version-logo {
+  font-family: $font-primary;
+  font-size: 1.25rem;
+  color: $black;
+}

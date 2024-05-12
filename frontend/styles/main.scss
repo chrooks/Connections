@@ -1,0 +1,9 @@
+@import 'variables';
+@import 'mixins';
+@import 'navbar';
+@import 'game-board';
+@import 'extra-ui';
+
+.app {
+  font-family: $font-primary;
+}
