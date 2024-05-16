@@ -28,7 +28,8 @@ from .game import (
 )
 from .utils import parse_and_validate_request, create_response
 
-api_bp = Blueprint("api", __name__)
+api_bp = Blueprint("connections", __name__)
+
 
 
 @api_bp.route("/generate-grid", methods=["POST"])

@@ -12,12 +12,17 @@ Error Handlers:
 - 500 Internal Server Error: Handles internal server errors.
 """
 
+import os
 from flask import Flask
 from src.api import api_bp
 from src.utils import create_response
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.register_blueprint(api_bp, url_prefix="/api")
+app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://postgres:{os.getenv("POSTGRES_USER_PASSWORD")}@localhost:5432/connectionsdb'
+db = SQLAlchemy(app)
+
+app.register_blueprint(api_bp, url_prefix="/connections")
 
 
 @app.route("/")

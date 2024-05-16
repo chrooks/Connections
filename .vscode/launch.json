@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Start Backend",
+      "type": "python",
+      "request": "launch",
+      "module": "src.app",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/backend" // Ensure this points to the root directory of your project
+    },
+    {
+      "name": "Start Frontend",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/frontend/src/index.js",
+      "cwd": "${workspaceFolder}/frontend"
+    }
+  ]
+}
