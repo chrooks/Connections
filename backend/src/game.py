@@ -14,12 +14,17 @@ Functions:
 - restart_game(game_id): Restarts the game with a new grid and resets the game state.
 - shuffle_game_board(game_id): Shuffles the words on the game board.
 """
-import random
-import uuid
-from .utils import call_llm_api
 
-# In-memory storage for game states; in production, consider using a database.
-games = {}
+import random
+from .dal import (
+    add_new_game,
+    get_game_from_db,
+    is_guess_correct,
+    reset_game,
+    update_game_state,
+    check_game_exists,
+)
+from .utils import call_llm_api
 
 
 def generate_game_grid():
@@ -64,57 +69,34 @@ def generate_game_grid():
     return grid, relationships
 
 
-def validate_game_id(game_id):
+def process_guess(game_id, guess):
     """
-    Validates if the provided game_id exists in the games storage.
-
-    :param game_id: The game ID to check.
-    :return: True if the game exists, False otherwise.
-    """
-    return game_id in games
-
-
-def validate_guess(game_id, guess):
-    """
-    Validates whether the provided guess (a list of four words) forms a valid relationship
-    as per the game's definitions.
+    Validates the guess and updates the game state by calling the respective functions from dal.py.
+    Returns the updated game state.
 
     :param game_id: The ID of the game session where the guess is being made.
     :param guess: A list of four words that represent the player's guess.
-    :return: A tuple (is_valid, message). `is_valid` is a boolean indicating whether the guess was valid.
-             `message` provides feedback or the relationship if the guess is correct.
+    :return: Updated game state after processing the guess.
     """
-    # Ensure the game exists and the guess matches a known relationship
-    if validate_game_id(game_id):
-        return False, "Game ID not found."
+    is_correct = is_guess_correct(game_id, guess)
+    update_game_state(game_id, guess, is_correct)
 
-    relationships = games[game_id]["relationships"]
-    for words, relation in relationships.items():
-        if set(guess) == set(words):
-            # Correct guess, remove this relationship from the game state to prevent reuse
-            del relationships[words]
-            return True, f"Correct! The connection is: {relation}"
-
-    return False, "Incorrect guess. Try again."
+    return get_game_from_db(game_id)
 
 
 def create_new_game():
     """
-    Creates a new game session with a generated game grid and relationships.
+    Creates a new game session with a generated game grid and relationships, and stores it in the database.
 
     :return: A tuple containing the game ID and the initial game state.
     """
-    game_id = str(uuid.uuid4())
     grid, relationships = generate_game_grid()
 
-    game_state = {
-        "grid": grid,
-        "relationships": relationships,
-        "remainingGuesses": 4,
-        "gameOver": False,
-    }
+    # Add the new game to the database using the DAL method
+    game_id = add_new_game(grid, relationships)
 
-    games[game_id] = game_state
+    # Retrieve the newly created game state from the database
+    game_state = get_game_from_db(game_id)
 
     return game_id, game_state
 
@@ -124,59 +106,23 @@ def get_game_state(game_id):
     Retrieves the current game state for the specified game ID.
 
     :param game_id: The ID of the game session.
-    :return: The game state dictionary if the game exists, None otherwise.
+    :return: The Game object if the game exists, raises ValueError otherwise.
     """
-    if validate_game_id(game_id):
-        return games[game_id]
-    return None
-
-
-def update_game_state(game_id, guess_result):
-    """
-    Updates the game state based on the result of a guess.
-
-    :param game_id: The ID of the game session.
-    :param guess_result: A tuple containing the validity of the guess and the corresponding message.
-    """
-    if validate_game_id(game_id):
-        game_state = games[game_id]
-        is_valid, message = guess_result
-
-        if not is_valid:
-            game_state["remainingGuesses"] -= 1
-            if game_state["remainingGuesses"] <= 0:
-                game_state["gameOver"] = True
+    return get_game_from_db(game_id)
 
 
 def restart_game(game_id):
     """
-    Restarts the game with a new grid and resets the game state.
+    Restarts the game specified by this id with a new grid and resets the game state.
 
     :param game_id: The ID of the game session to restart.
-    :return: The updated game state with the new grid and reset values.
     """
-    if validate_game_id(game_id):
-        grid, relationships = generate_game_grid()
-        game_state = {
-            "grid": grid,
-            "relationships": relationships,
-            "remainingGuesses": 4,
-            "gameOver": False,
-        }
-        games[game_id] = game_state
-        return game_state
-    return None
+    # Check if the game exists
+    if not check_game_exists(game_id):
+        raise ValueError("No game found with the provided ID.")
 
+    # Generate a new game grid and relationships
+    grid, relationships = generate_game_grid()
 
-def shuffle_game_board(game_id):
-    """
-    Shuffles the words on the game board while preserving the game state.
-
-    :param game_id: The ID of the game session.
-    :return: The updated game state with the shuffled grid.
-    """
-    if validate_game_id(game_id):
-        game_state = games[game_id]
-        random.shuffle(game_state["grid"])
-        return game_state
-    return None
+    # Call the helper function to update the game in the database with the new grid and reset the game state
+    return reset_game(game_id, grid, relationships)

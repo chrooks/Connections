@@ -1,2 +1,4 @@
 backend/myenv/
 backend/src/__pycache__/
+.vscode/
+backend/tests/__pycache__/

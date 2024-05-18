@@ -24,7 +24,7 @@ from .game import (
     update_game_state,
     restart_game,
     shuffle_game_board,
-    validate_guess,
+    is_guess_correct,
 )
 from .utils import parse_and_validate_request, create_response
 
@@ -75,10 +75,10 @@ def submit_guess():
             error="Invalid guess format. A guess should be a list of four words.", status_code=400
         )
 
-    guess_result = validate_guess(game_id, guess)
+    guess_result = is_guess_correct(game_id, guess)
     update_game_state(game_id, guess_result)
 
-    is_valid, message = guess_result
+    is_correct, message = guess_result
     game_over = game_state["gameOver"]
 
     if game_over:
@@ -86,7 +86,7 @@ def submit_guess():
 
     return create_response(
         data={
-            "success": is_valid,
+            "success": is_correct,
             "message": message,
             "remainingGuesses": game_state["remainingGuesses"],
             "gameOver": game_over,
@@ -137,38 +137,6 @@ def restart_game_route():
             "success": True,
             "message": "Game restarted.",
             "gameId": game_id,
-            "grid": game_state["grid"],
-        }
-    )
-
-
-@api_bp.route("/shuffle-board", methods=["POST"])
-def shuffle_board():
-    """
-    Shuffles the words on the current game board for a specified game session.
-
-    This endpoint expects a JSON payload with a 'gameId' key identifying the game
-    to shuffle. It randomizes the order of the words in the game's grid while
-    preserving the underlying relationships and game state.
-
-    :return: A JSON response containing the shuffled grid for the game session
-             or an error message if the game ID is not found.
-    """
-    required_fields = ["gameId"]
-    data, error = parse_and_validate_request(required_fields)
-    if error:
-        return create_response(error=error, status_code=400)
-
-    game_id = data["gameId"]
-    game_state = shuffle_game_board(game_id)
-
-    if not game_state:
-        return create_response(error="Game ID not found.", status_code=404)
-
-    return create_response(
-        data={
-            "success": True,
-            "message": "Board shuffled successfully.",
             "grid": game_state["grid"],
         }
     )

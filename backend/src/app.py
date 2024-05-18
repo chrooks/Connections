@@ -19,7 +19,8 @@ from src.utils import create_response
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://postgres:{os.getenv("POSTGRES_USER_PASSWORD")}@localhost:5432/connectionsdb'
+# app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://postgres:{os.getenv("POSTGRES_USER_PASSWORD")}@localhost:5432/connectionsdb'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///backend/connectionsdb.db'
 db = SQLAlchemy(app)
 
 app.register_blueprint(api_bp, url_prefix="/connections")
@@ -41,4 +42,6 @@ def internal_server_error(error):
 
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
