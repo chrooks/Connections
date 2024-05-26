@@ -1,0 +1,27 @@
+{
+  "Fruits" : [
+    "apple",
+    "banana",
+    "cherry",
+    "date"
+  ],
+  "Ocean Life" : [
+    "whale",
+    "coral",
+    "shark",
+    "dolphin"
+  ],
+  "Space Exploration" : [
+    "astronaut",
+    "rocket",
+    "satellite",
+    "nebula"
+  ],
+  "Musical Instruments" : [
+    "guitar",
+    "piano",
+    "violin",
+    "drum"
+  ]
+}
+

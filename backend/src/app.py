@@ -14,34 +14,36 @@ Error Handlers:
 
 import os
 from flask import Flask
-from src.api import api_bp
-from src.utils import create_response
-from flask_sqlalchemy import SQLAlchemy
-
-app = Flask(__name__)
-# app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://postgres:{os.getenv("POSTGRES_USER_PASSWORD")}@localhost:5432/connectionsdb'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///backend/connectionsdb.db'
-db = SQLAlchemy(app)
-
-app.register_blueprint(api_bp, url_prefix="/connections")
+from api import api_bp
+from utils import create_response
+from models import db
 
 
-@app.route("/")
-def index():
-    return create_response(data={"message": "Welcome to the Connections game API!"})
+def create_app():
+    app = Flask(__name__)
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        "sqlite:////home/chrooks/projects/Connections/backend/connectionsdb.db"
+    )
+    db.init_app(app)  # Bind the app with the SQLAlchemy instance
+    app.register_blueprint(api_bp, url_prefix="/connections")
 
+    @app.route("/")
+    def index():
+        return create_response(data={"message": "Welcome to the Connections game API!"})
 
-@app.errorhandler(404)
-def not_found(error):
-    return create_response(error="Not Found", status_code=404)
+    @app.errorhandler(404)
+    def not_found(error):
+        return create_response(error="Not Found", status_code=404)
 
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        return create_response(error="Internal Server Error", status_code=500)
 
-@app.errorhandler(500)
-def internal_server_error(error):
-    return create_response(error="Internal Server Error", status_code=500)
+    return app
 
 
 if __name__ == "__main__":
+    app = create_app()
     with app.app_context():
         db.create_all()
     app.run(debug=True)

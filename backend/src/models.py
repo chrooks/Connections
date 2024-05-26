@@ -1,6 +1,8 @@
+import uuid
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
+
 
 class Game(db.Model):
     """
@@ -14,7 +16,10 @@ class Game(db.Model):
         game_over (bool): A flag indicating whether the game session has ended.
         previous_guesses (PickleType): A list of previous guesses made during the game session.
     """
-    id = db.Column(db.String, primary_key=True)  # Unique identifier for the game session
+
+    id = db.Column(
+        db.String, primary_key=True, default=lambda: str(uuid.uuid4())
+    )  # Unique identifier for the game session
     grid = db.Column(db.PickleType)  # Serialized game grid containing the list of words
     relationships = db.Column(db.PickleType)  # Serialized relationships between words
     mistakes_left = db.Column(db.Integer)  # Number of remaining guesses in the game
@@ -28,4 +33,4 @@ class Game(db.Model):
         Returns:
             str: A string representation of the Game instance, showing the game ID.
         """
-        return '<Game %r>' % self.id
+        return "<Game %r>" % self.id

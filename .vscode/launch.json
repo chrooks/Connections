@@ -5,9 +5,9 @@
       "name": "Start Backend",
       "type": "python",
       "request": "launch",
-      "module": "src.app",
+      "program": "app.py",
       "justMyCode": true,
-      "cwd": "${workspaceFolder}/backend" // Ensure this points to the root directory of your project
+      "cwd": "${workspaceFolder}/backend/src/"
     },
     {
       "name": "Start Frontend",

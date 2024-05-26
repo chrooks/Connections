@@ -1,5 +1,4 @@
-from .models import db, Game
-import random
+from models import db, Game
 
 
 def add_new_game(grid, relationships):

@@ -18,25 +18,24 @@ Functions:
 - shuffle_board(): Shuffles the words on the game board for a specified game session.
 """
 from flask import Blueprint, request
-from .game import (
+from game import (
     create_new_game,
     get_game_state,
     update_game_state,
     restart_game,
-    shuffle_game_board,
-    is_guess_correct,
+    process_guess,
 )
-from .utils import parse_and_validate_request, create_response
+from utils import parse_and_validate_request, create_response
 
 api_bp = Blueprint("connections", __name__)
-
 
 
 @api_bp.route("/generate-grid", methods=["POST"])
 def generate_grid():
     """
     Generates a new game grid with randomly selected words upon receiving a POST request.
-    This creates a new game session and returns a unique game ID along with the initial grid state.
+    This creates a new game session and returns a unique game ID along with the initial grid state,
+    mistakes left, previous guesses, game over status, and relationships.
 
     If an error occurs during grid generation, the endpoint will return an error message.
     """
@@ -45,7 +44,14 @@ def generate_grid():
     if not game_state:
         return create_response(error="Failed to generate the game grid.", status_code=500)
 
-    return create_response(data={"gameId": game_id, "grid": game_state["grid"]}, status_code=201)
+    return create_response(data={
+        "gameId": game_id, 
+        "grid": game_state.grid, 
+        "mistakesLeft": game_state.mistakes_left, 
+        "previousGuesses": game_state.previous_guesses, 
+        "gameOver": game_state.game_over, 
+        "relationships": game_state.relationships
+    }, status_code=201)
 
 
 @api_bp.route("/submit-guess", methods=["POST"])
@@ -65,21 +71,20 @@ def submit_guess():
     game_id = data["gameId"]
     guess = data["guess"]
 
-    game_state = get_game_state(game_id)
-    if not game_state:
-        return create_response(error="Invalid game ID.", status_code=404)
-
     # Validate the guess format (must be a list of four words)
     if not isinstance(guess, list) or len(guess) != 4:
         return create_response(
             error="Invalid guess format. A guess should be a list of four words.", status_code=400
         )
 
-    guess_result = is_guess_correct(game_id, guess)
-    update_game_state(game_id, guess_result)
+    # Process the guess and update the game state
+    game_state, is_correct = process_guess(game_id, guess)
+    if not game_state:
+        return create_response(error="Invalid game ID or processing failed.", status_code=404)
 
-    is_correct, message = guess_result
-    game_over = game_state["gameOver"]
+    message = "Correct!" if is_correct else "Incorrect."
+    game_over = game_state.game_over
+    mistakes_left = game_state.mistakes_left
 
     if game_over:
         return create_response(data={"success": False, "message": "Game over!"})
@@ -88,7 +93,7 @@ def submit_guess():
         data={
             "success": is_correct,
             "message": message,
-            "remainingGuesses": game_state["remainingGuesses"],
+            "mistakesLeft": mistakes_left,
             "gameOver": game_over,
         }
     )
