@@ -12,7 +12,6 @@ Error Handlers:
 - 500 Internal Server Error: Handles internal server errors.
 """
 
-import os
 from flask import Flask
 from api import api_bp
 from utils import create_response

@@ -1,10 +1,36 @@
+"""
+Data Access Layer (DAL) module for the Connections game API.
+
+This module provides the necessary functions to interact with the database. It handles operations such as creating new game sessions, checking for existing games, retrieving game details, and converting data types for compatibility with SQLAlchemy.
+
+Functions:
+- add_new_game(grid, connections): Adds a new game to the database with the specified grid and connections.
+- check_game_exists(game_id): Checks if a game with the specified ID exists in the database.
+- get_game_from_db(game_id): Retrieves a game from the database using the game ID, ensuring the connections are mutable for tracking changes.
+- update_game_state(game_id, guess, is_correct): Updates the game state based on the result of a guess, adding the guess to previous guesses, decrementing the number of guesses if the guess was incorrect, and updating the guessed status of the connection if the guess was correct.
+- check_game_over(game): Evaluates the game's status based on the remaining mistakes and win conditions.
+- all_conditions_for_win_met(game): Checks if all conditions for a win are met in the game.
+- is_guess_correct(game_id, guess): Determines if the guess is correct and valid based on the game's relationship definitions and rules.
+- reset_game(game_id, grid, connections): Resets the game with a new grid and connections, updating the game state in the database.
+- get_all_games(): Retrieves all game data from the database.
+"""
+
 from models import db, ConnectionsGame, GameStatus
 from sqlalchemy.ext.mutable import MutableDict
 
 
 def add_new_game(grid, connections):
     """
-    Adds a new game to the database.
+    Adds a new game to the database with the specified grid and connections.
+    Initializes the game with 4 mistakes allowed, an empty list of previous guesses,
+    and sets the game status to IN_PROGRESS.
+
+    Args:
+        grid (list): A list of words representing the game grid.
+        connections (list): A list of dictionaries detailing the connections between words.
+
+    Returns:
+        str: The unique identifier of the newly created game.
     """
     new_game = ConnectionsGame(
         grid=grid,
@@ -20,7 +46,13 @@ def add_new_game(grid, connections):
 
 def check_game_exists(game_id):
     """
-    Checks if a game with the given ID exists in the database.
+    Determines if a game session with the specified ID is present in the database.
+
+    Args:
+        game_id (str): The unique identifier of the game session to check.
+
+    Returns:
+        bool: True if the game exists, False otherwise.
     """
     return ConnectionsGame.query.filter_by(id=game_id).first() is not None
 
@@ -36,16 +68,16 @@ def get_game_from_db(game_id):
     # Check if the game with the specified ID exists in the database
     if not check_game_exists(game_id):
         return None  # Return None if the game does not exist
-    
+
     # Retrieve the game object from the database
     game = ConnectionsGame.query.filter_by(id=game_id).first()
-    
+
     # If the game object is found, convert its connections to MutableDict
     if game:
         # Convert each connection dictionary in the list to a MutableDict
         # This allows SQLAlchemy to track changes to the dictionary contents
-        game.connections = [MutableDict.coerce(key, conn) for key, conn in enumerate(game.connections)]
-    
+        game.connections = ConnectionsGame.make_connections_mutable(game.connections)
+
     # Return the game object
     return game
 

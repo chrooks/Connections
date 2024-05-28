@@ -1,3 +1,14 @@
+"""
+This module defines the database models for the Connections game using SQLAlchemy. It includes the definition of the game session model `ConnectionsGame` which stores all relevant game information such as the game grid, connections, and game status. It also includes the `GameStatus` enum for defining possible game states.
+
+Classes:
+- GameStatus: Enum defining possible states of a game session.
+- ConnectionsGame: SQLAlchemy model representing a game session in the database.
+
+Functions:
+- make_connections_mutable(connections): Helper function to make connection dictionaries mutable for SQLAlchemy tracking.
+"""
+
 import uuid
 from flask_sqlalchemy import SQLAlchemy
 from typing import List

@@ -2,17 +2,17 @@
 Game logic module for the Connections game API.
 
 This module contains functions for managing game state, generating game grids,
-validating guesses, and performing game-related operations.
+validating guesses, and performing game-related operations. It is designed to interact
+with the database layer to fetch and update game data as needed.
 
 Functions:
+- validate_id(game_id): Validates if a game ID exists.
 - generate_game_grid(): Generates the game grid and word connections.
-- validate_game_id(game_id): Validates if a game ID exists.
-- validate_guess(game_id, guess): Validates a player's guess against the game's connections.
+- process_guess(game_id, guess): Processes a guess and updates the game state.
 - create_new_game(): Creates a new game session.
 - get_game_state(game_id): Retrieves the current game state.
-- update_game_state(game_id, guess_result): Updates the game state based on a guess result.
 - restart_game(game_id): Restarts the game with a new grid and resets the game state.
-- shuffle_game_board(game_id): Shuffles the words on the game board.
+- get_all_games_data(): Retrieves the status of all games.
 """
 
 import random
@@ -28,7 +28,7 @@ from dal import (
     get_all_games,
     check_game_exists,
 )
-from utils import call_llm_api
+# from utils import call_llm_api
 
 
 def validate_id(game_id):

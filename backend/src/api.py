@@ -1,21 +1,18 @@
 """
-API routes module for the Connections game API.
+This module, 'api.py', serves as the core interface for the Connections game API, defining and managing all the necessary API endpoints for game interaction.
 
-This module defines the API endpoints and handles incoming requests related to the game.
+Detailed Endpoint Descriptions:
+- POST /generate-grid: Initiates a new game session by generating a fresh game grid.
+- POST /submit-guess: Accepts and evaluates a player's guess, comparing it to established game connections.
+- GET /game-status: Provides the current status and progress of an ongoing game session.
+- POST /restart-game: Resets an existing game with a new grid, effectively starting a new game session.
 
-Routes:
-- /generate-grid (POST): Generates a new game grid and creates a game session.
-- /submit-guess (POST): Receives a player's guess and validates it against the game's connections.
-- /game-status (GET): Returns the current status of a game.
-- /restart-game (POST): Restarts the game with a new grid and resets the game state.
-- /shuffle-board (POST): Shuffles the words on the game board for a specified game session.
 
-Functions:
-- generate_grid(): Handles the generation of a new game grid and creates a game session.
-- submit_guess(): Receives a player's guess and validates it against the game's connections.
-- game_status(): Returns the current status of a game.
-- restart_game_route(): Restarts the game with a new grid and resets the game state.
-- shuffle_board(): Shuffles the words on the game board for a specified game session.
+Associated Functions:
+- generate_grid(): Constructs a new game grid and initiates a game session.
+- submit_guess(): Processes a player's guess and checks its accuracy against the game's connections.
+- game_status(): Fetches and returns the current state of a game session.
+- restart_game_route(): Resets and starts a new game with a fresh grid.
 """
 
 from flask import Blueprint, request
