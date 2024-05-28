@@ -12,7 +12,7 @@ from backend.src.game import (
 class TestGame(unittest.TestCase):
 
     def test_generate_game_grid_success(self):
-        # This test checks if the game grid and relationships are successfully generated.
+        # This test checks if the game grid and connections are successfully generated.
         # It mocks the file reading and API calling processes.
         m = mock_open(read_data="prompt data")
         with patch("builtins.open", m):
@@ -20,17 +20,17 @@ class TestGame(unittest.TestCase):
                 "backend.src.game.call_llm_api",
                 return_value="word1, word2: relationship\nword3, word4: relationship2",
             ):
-                grid, relationships = generate_game_grid()
+                grid, connections = generate_game_grid()
                 self.assertTrue(len(grid) > 0)  # Ensure the grid is not empty
-                self.assertTrue(len(relationships) > 0)  # Ensure relationships are not empty
+                self.assertTrue(len(connections) > 0)  # Ensure connections are not empty
 
     def test_generate_game_grid_file_not_found(self):
         # This test ensures that the function handles a FileNotFoundError correctly
-        # by returning empty grid and relationships.
+        # by returning empty grid and connections.
         with patch("builtins.open", side_effect=FileNotFoundError):
-            grid, relationships = generate_game_grid()
+            grid, connections = generate_game_grid()
             self.assertEqual(grid, [])  # Grid should be empty
-            self.assertEqual(relationships, {})  # Relationships should be empty
+            self.assertEqual(connections, {})  # Connections should be empty
 
     def test_create_new_game(self):
         # This test verifies that a new game can be created successfully.
@@ -45,7 +45,7 @@ class TestGame(unittest.TestCase):
                     return_value={
                         "game_id": 1,
                         "grid": ["word1", "word2"],
-                        "relationships": {("word1", "word2"): "relationship"},
+                        "connections": {("word1", "word2"): "relationship"},
                     },
                 ):
                     game_id, game_state = create_new_game()

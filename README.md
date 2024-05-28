@@ -5,7 +5,7 @@ The Connections Game is a web application inspired by the NY Times game, offerin
 ## Features
 
 - **Dynamic Word Grids**: Every game generates a unique set of words and connections, ensuring a fresh challenge for players every time.
-- **Game State Management**: Players have a limited number of guesses to find all connections, with the game tracking and displaying remaining guesses.
+- **Game State Management**: Players have a limited number of guesses to find all connections, with the game tracking and displaying mistakes left.
 - **Responsive Design**: A user-friendly interface that adjusts to various screen sizes for an optimal playing experience.
 
 ## Getting Started
@@ -76,7 +76,7 @@ Your application should now be running on `localhost:3000` (frontend) and the Fl
   - **Python**: The primary programming language for backend development, chosen for its simplicity and effectiveness.
 
 - **Word and Connection Generation**:
-  - **LLM**: Utilized to dynamically generate the words that compose the game's grid and their relationships, ensuring a unique and challenging experience every game.
+  - **LLM**: Utilized to dynamically generate the words that compose the game's grid and their connections, ensuring a unique and challenging experience every game.
 
 ## Contributing
 

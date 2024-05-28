@@ -5,9 +5,9 @@ This module contains functions for managing game state, generating game grids,
 validating guesses, and performing game-related operations.
 
 Functions:
-- generate_game_grid(): Generates the game grid and word relationships.
+- generate_game_grid(): Generates the game grid and word connections.
 - validate_game_id(game_id): Validates if a game ID exists.
-- validate_guess(game_id, guess): Validates a player's guess against the game's relationships.
+- validate_guess(game_id, guess): Validates a player's guess against the game's connections.
 - create_new_game(): Creates a new game session.
 - get_game_state(game_id): Retrieves the current game state.
 - update_game_state(game_id, guess_result): Updates the game state based on a guess result.
@@ -25,15 +25,27 @@ from dal import (
     reset_game,
     update_game_state,
     check_game_exists,
+    get_all_games,
+    check_game_exists,
 )
 from utils import call_llm_api
 
 
+def validate_id(game_id):
+    """
+    Validates if a game ID exists in the database.
+
+    :param game_id: The ID of the game to validate.
+    :return: True if the game exists, False otherwise.
+    """
+    return check_game_exists(game_id)
+
+
 def generate_game_grid():
     """
-    Generates the game grid and relationships by reading the contents of 'placeholder.json'.
+    Generates the game grid and connections by reading the contents of 'placeholder.json'.
 
-    :return: A tuple containing the game grid (list of words) and the relationships
+    :return: A tuple containing the game grid (list of words) and the connections
              dictionary mapping word tuples to their connection (relationship).
     """
     # Commenting out the previous functionality
@@ -59,7 +71,7 @@ def generate_game_grid():
     # Construct the absolute path to the placeholder.json file
     current_dir = path.dirname(__file__)  # Gets the directory where this script is located
     json_path = path.join(
-        current_dir, "placeholder.json"
+        current_dir, "../schemas/connections.json"
     )  # Constructs the path to the JSON file
 
     # Load data from placeholder.json
@@ -67,46 +79,52 @@ def generate_game_grid():
         data = json.load(file)
 
     grid = []
-    relationships = {}
-    for relationship, words_list in data.items():
-        grid.extend(words_list)
-        relationships[relationship] = words_list
+    connections = []
+    print(data)
+    for connection in data:
+        grid.extend(connection["words"])
+        connections.append(connection)
 
     # Shuffle the grid for game variability
     random.shuffle(grid)
-    return grid, relationships
+    return grid, connections
 
 
 def process_guess(game_id, guess):
     """
     Validates the guess and updates the game state by calling the respective functions from dal.py.
-    Returns the updated game state and whether the guess was correct.
+    Returns the updated game state, a boolean confirming whether the guess is valid, and whether the guess was correct.
 
     :param game_id: The ID of the game session where the guess is being made.
     :param guess: A list of four words that represent the player's guess.
-    :return: A tuple containing the updated game state and a boolean indicating if the guess was correct.
+    :return: A tuple containing the updated game state,
+                                a boolean indicating if the guess was valid,
+                                and a boolean indicating if the guess was correct.
     """
-    is_correct = is_guess_correct(game_id, guess)
-    update_game_state(game_id, guess, is_correct)
+    is_correct, is_valid = is_guess_correct(game_id, guess)
+    if not is_valid:
+        return None, is_valid, False
 
-    return get_game_from_db(game_id), is_correct
+    update_game_state(game_id, guess, is_correct)
+    game_state = get_game_from_db(game_id)
+    return game_state, is_valid, is_correct
 
 
 def create_new_game():
     """
-    Creates a new game session with a generated game grid and relationships, and stores it in the database.
+    Creates a new game session with a generated game grid and connections, and stores it in the database.
 
     :return: A tuple containing the game ID and the initial game state.
     """
-    grid, relationships = generate_game_grid()
+    grid, connections = generate_game_grid()
 
     # Add the new game to the database using the DAL method
-    game_id = add_new_game(grid, relationships)
+    game_id = add_new_game(grid, connections)
 
     # Retrieve the newly created game state from the database
-    game_state = get_game_from_db(game_id)
+    game = get_game_from_db(game_id)
 
-    return game_id, game_state
+    return game
 
 
 def get_game_state(game_id):
@@ -122,15 +140,30 @@ def get_game_state(game_id):
 def restart_game(game_id):
     """
     Restarts the game specified by this id with a new grid and resets the game state.
+    Returns the restarted game state.
 
     :param game_id: The ID of the game session to restart.
+    :return: The restarted game state.
     """
     # Check if the game exists
     if not check_game_exists(game_id):
         raise ValueError("No game found with the provided ID.")
 
-    # Generate a new game grid and relationships
-    grid, relationships = generate_game_grid()
+    # Generate a new game grid and connections
+    grid, connections = generate_game_grid()
 
     # Call the helper function to update the game in the database with the new grid and reset the game state
-    return reset_game(game_id, grid, relationships)
+    return reset_game(game_id, grid, connections)
+
+
+def get_all_games_data():
+    """
+    Retrieves the status of all games from the database.
+
+    :return: A dictionary containing the status of all games.
+    """
+    all_games = get_all_games()
+    games_data = {}
+    for game in all_games:
+        games_data[game.id] = game.to_state()
+    return games_data

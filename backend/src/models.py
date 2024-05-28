@@ -1,30 +1,75 @@
 import uuid
 from flask_sqlalchemy import SQLAlchemy
+from typing import List
+from sqlalchemy.ext.mutable import MutableList, MutableDict
+import enum
 
 db = SQLAlchemy()
 
 
-class Game(db.Model):
+class GameStatus(enum.Enum):
+    IN_PROGRESS = "IN_PROGRESS"
+    WIN = "WIN"
+    LOSS = "LOSS"
+
+
+class ConnectionsGame(db.Model):
     """
     Represents a game session in the database.
 
     Attributes:
         id (str): The primary key that uniquely identifies a game session.
-        grid (PickleType): The serialized form of the game grid which contains the list of words.
-        relationships (PickleType): The serialized form of relationships between words in the game grid.
-        remaining_guesses (int): The number of guesses left for the player in the current game session.
-        game_over (bool): A flag indicating whether the game session has ended.
-        previous_guesses (PickleType): A list of previous guesses made during the game session.
+        grid (JSON): Flat list of the 16 words the contains the list of words.
+        connections (JSON): A list of connection objects, each containing a relationship key and a list of four words.
+        mistakes_left (int): The number of incorrect guesses left for the player in the current game session.
+        status (Enum): The current status of the game session, represented by an enum value.
+        previous_guesses (JSON): A list of previous guesses made during the game session.
     """
 
-    id = db.Column(
+    id: str = db.Column(
         db.String, primary_key=True, default=lambda: str(uuid.uuid4())
     )  # Unique identifier for the game session
-    grid = db.Column(db.PickleType)  # Serialized game grid containing the list of words
-    relationships = db.Column(db.PickleType)  # Serialized relationships between words
-    mistakes_left = db.Column(db.Integer)  # Number of remaining guesses in the game
-    game_over = db.Column(db.Boolean)  # Flag to indicate if the game is over
-    previous_guesses = db.Column(db.PickleType)  # List of previous guesses made during the game
+    connections: List["dict"] = db.Column(
+        MutableList.as_mutable(db.JSON), default=list
+    )  # Serialized list of connection objects
+    grid: List[str] = db.Column(db.JSON)  # Serialized game grid containing the list of words
+    mistakes_left: int = db.Column(db.Integer)  # Number of mistakes left in the game
+    status: GameStatus = db.Column(
+        db.Enum(GameStatus), default=GameStatus.IN_PROGRESS
+    )  # Game status represented by an enum
+    previous_guesses: List[str] = db.Column(
+        MutableList.as_mutable(db.JSON), default=list
+    )  # List of previous guesses made during the game
+
+    @staticmethod
+    def make_connections_mutable(connections):
+        """
+        Converts each dictionary in the connections list to MutableDict.
+        This ensures changes to the dictionary contents are tracked by SQLAlchemy.
+        """
+        # This line iterates over the connections list, enumerates it to get both index and value,
+        # and converts each connection dictionary into a MutableDict to track changes in SQLAlchemy.
+        return [MutableDict.coerce(key, conn) for key, conn in enumerate(connections)]
+
+    def __init__(self, *args, **kwargs):
+        super(ConnectionsGame, self).__init__(*args, **kwargs)
+        self.connections = self.make_connections_mutable(self.connections)
+
+    def to_state(self):
+        """
+        Retrieves the current state of the game session.
+
+        Returns:
+            dict: A dictionary containing the game's ID, grid, remaining mistakes, and game status.
+        """
+        return {
+            "gameId": self.id,
+            "grid": self.grid,
+            "connections": self.connections,
+            "mistakesLeft": self.mistakes_left,
+            "status": self.status.value,
+            "previousGuesses": self.previous_guesses,
+        }
 
     def __repr__(self):
         """

@@ -1,0 +1,22 @@
+[
+  {
+    "relationship": "Fruits",
+    "guessed": false,
+    "words": ["apple", "banana", "cherry", "date"]
+  },
+  {
+    "relationship": "Ocean Life",
+    "guessed": false,
+    "words": ["whale", "coral", "shark", "dolphin"]
+  },
+  {
+    "relationship": "Space Exploration",
+    "guessed": false,
+    "words": ["astronaut", "rocket", "satellite", "nebula"]
+  },
+  {
+    "relationship": "Musical Instruments",
+    "guessed": false,
+    "words": ["guitar", "piano", "violin", "drum"]
+  }
+]

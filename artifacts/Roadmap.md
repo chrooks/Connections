@@ -10,7 +10,7 @@
   - A 4x4 grid display for the game tiles with words.
   - Interaction for selecting tiles and submitting guesses.
   - Feedback mechanism for correct/incorrect guesses.
-  - Display for remaining guesses and game over condition.
+  - Display for mistakes left and game over condition.
 
 **Backend:**
 
@@ -65,19 +65,19 @@
 
 Your Flask application is designed to support a game where players guess connections between words. Here's a summary of its functionality and structure:
 
-Game State Storage: Utilizes an in-memory dictionary (games) to store game states. Each game state includes the game grid, relationships between words, remaining guesses, and a flag to indicate if the game is over. This is a temporary solution, and a database is recommended for production use.
+Game State Storage: Utilizes an in-memory dictionary (games) to store game states. Each game state includes the game grid, connections between words, mistakes left, and a flag to indicate if the game is over. This is a temporary solution, and a database is recommended for production use.
 
 Mock LLM API Call: Implements call_llm_api(prompt), a mock function returning a fixed set of words and their categories to simulate generating word grids and their connections via a LLM model.
 
-Game Grid Generation: generate_game_grid() reads a prompt from backend/prompt.txt, simulates a call to the LLM API, and parses the response to create a game grid and map words to their relationships. It handles file not found and other exceptions, shuffles the grid for randomness, and ensures no leading or trailing whitespace in words or relationships.
+Game Grid Generation: generate_game_grid() reads a prompt from backend/prompt.txt, simulates a call to the LLM API, and parses the response to create a game grid and map words to their connections. It handles file not found and other exceptions, shuffles the grid for randomness, and ensures no leading or trailing whitespace in words or connections.
 
 Request Parsing and Validation: parse_and_validate_request(required_fields) checks if the necessary fields are present in the request's JSON payload, returning the data and any errors encountered.
 
 Endpoints:
 
 /generate-grid (POST): Creates a new game session with a unique game ID and a generated word grid. It handles errors in grid generation gracefully.
-/submit-guess (POST): Processes player guesses, updating the game state based on the correctness of the guess. It needs further implementation for validating guesses against the relationships.
-/game-status (GET): Returns the current status of a game, including the grid, remaining guesses, and whether the game is over, based on a provided game ID.
+/submit-guess (POST): Processes player guesses, updating the game state based on the correctness of the guess. It needs further implementation for validating guesses against the connections.
+/game-status (GET): Returns the current status of a game, including the grid, mistakes left, and whether the game is over, based on a provided game ID.
 /restart-game (POST): Restarts a game with the same game ID, resetting the grid and guesses. It requires further implementation for generating a new grid.
 Error Handling: The application handles potential errors, such as missing prompt.txt, invalid game IDs, and incomplete request payloads, providing appropriate feedback to the client.
 

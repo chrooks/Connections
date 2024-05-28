@@ -1,0 +1,96 @@
+{
+  "data": {
+    "games": {
+      "296217e2-3773-438a-84b0-d7cc2d26949d": {
+        "connections": [
+          {
+            "guessed": false,
+            "relationship": "Fruits",
+            "words": ["apple", "banana", "cherry", "date"]
+          },
+          {
+            "guessed": false,
+            "relationship": "Ocean Life",
+            "words": ["whale", "apple", "shark", "dolphin"]
+          },
+          {
+            "guessed": false,
+            "relationship": "Space Exploration",
+            "words": ["astronaut", "rocket", "satellite", "nebula"]
+          },
+          {
+            "guessed": false,
+            "relationship": "Musical Instruments",
+            "words": ["guitar", "piano", "violin", "drum"]
+          }
+        ],
+        "game_over": false,
+        "grid": [
+          "banana",
+          "date",
+          "coral",
+          "drum",
+          "shark",
+          "piano",
+          "astronaut",
+          "dolphin",
+          "guitar",
+          "satellite",
+          "violin",
+          "rocket",
+          "nebula",
+          "apple",
+          "whale",
+          "cherry"
+        ],
+        "mistakes_left": 4,
+        "previous_guesses": []
+      },
+      "447d8a3c-8fb8-4aa3-b298-c64b6eb8d0d4": {
+        "connections": [
+          {
+            "guessed": false,
+            "relationship": "Fruits",
+            "words": ["apple", "banana", "cherry", "date"]
+          },
+          {
+            "guessed": false,
+            "relationship": "Ocean Life",
+            "words": ["whale", "coral", "shark", "dolphin"]
+          },
+          {
+            "guessed": false,
+            "relationship": "Space Exploration",
+            "words": ["astronaut", "rocket", "satellite", "nebula"]
+          },
+          {
+            "guessed": false,
+            "relationship": "Musical Instruments",
+            "words": ["guitar", "piano", "violin", "drum"]
+          }
+        ],
+        "game_over": false,
+        "grid": [
+          "rocket",
+          "apple",
+          "date",
+          "drum",
+          "violin",
+          "piano",
+          "whale",
+          "nebula",
+          "cherry",
+          "coral",
+          "banana",
+          "shark",
+          "guitar",
+          "satellite",
+          "astronaut",
+          "dolphin"
+        ],
+        "mistakes_left": 4,
+        "previous_guesses": []
+      }
+    }
+  }
+}
