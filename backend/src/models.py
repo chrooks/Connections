@@ -56,6 +56,8 @@ class ConnectionsGame(db.Model):
         Converts each dictionary in the connections list to MutableDict.
         This ensures changes to the dictionary contents are tracked by SQLAlchemy.
         """
+        if connections is None:
+            return []
         # This line iterates over the connections list, enumerates it to get both index and value,
         # and converts each connection dictionary into a MutableDict to track changes in SQLAlchemy.
         return [MutableDict.coerce(key, conn) for key, conn in enumerate(connections)]

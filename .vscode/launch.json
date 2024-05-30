@@ -2,6 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: PyTest",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${workspaceFolder}/backend/tests/"],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "Start Backend",
       "type": "python",
       "request": "launch",

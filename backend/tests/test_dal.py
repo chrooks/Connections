@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+from flask import Flask
 from sqlalchemy.ext.mutable import MutableDict
 from backend.src.dal import (
     add_new_game,
@@ -16,12 +17,16 @@ from backend.src.models import GameStatus, db, ConnectionsGame
 
 class TestDAL(unittest.TestCase):
 
-    @patch("backend.src.dal.db.session.add")
-    @patch("backend.src.dal.db.session.commit")
-    def test_add_new_game(self, mock_commit, mock_add):
-        # Test to ensure a new game can be added to the database correctly.
-        # This test checks if the `add` and `commit` methods of the database session are called.
-        connections = [
+    def setUp(self):
+        # Set up Flask app and push application context
+        self.app = Flask(__name__)
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        self.app.config["TESTING"] = True
+        db.init_app(self.app)
+        self.ctx = self.app.app_context()
+        self.ctx.push()
+
+        self.connections = [
             {
                 "relationship": "Fruits",
                 "guessed": False,
@@ -43,8 +48,20 @@ class TestDAL(unittest.TestCase):
                 "words": ["guitar", "piano", "violin", "drum"],
             },
         ]
-        grid = [word for connection in connections for word in connection["words"]]
-        game_id = add_new_game(grid, connections)
+        self.grid = [word for connection in self.connections for word in connection["words"]]
+
+    def tearDown(self):
+        # Close all sessions first while the application context is still active
+        db.session.remove()
+        # Then pop the application context
+        self.ctx.pop()
+
+    @patch("backend.src.dal.db.session.add")
+    @patch("backend.src.dal.db.session.commit")
+    def test_add_new_game(self, mock_commit, mock_add):
+        # Test to ensure a new game can be added to the database correctly.
+        # This test checks if the `add` and `commit` methods of the database session are called.
+        game_id = add_new_game(self.grid, self.connections)
         self.assertIsNotNone(game_id)  # Ensure that a game ID is returned (not None)
         mock_add.assert_called()  # Verify that the session's add method was called
         mock_commit.assert_called()  # Verify that the session's commit method was called
@@ -53,10 +70,11 @@ class TestDAL(unittest.TestCase):
     def test_check_game_exists(self, mock_query):
         # Test to check if the function correctly identifies existing and non-existing games.
         # This test uses a mock query object to simulate database responses.
-        mock_query.filter_by.return_value.first.return_value = ConnectionsGame()
-        self.assertTrue(check_game_exists(1))  # Check for an existing game
-        mock_query.filter_by.return_value.first.return_value = None
-        self.assertFalse(check_game_exists(999))  # Check for a non-existing game
+        with self.app.app_context():
+            mock_query.filter_by.return_value.first.return_value = ConnectionsGame()
+            self.assertTrue(check_game_exists(1))  # Check for an existing game
+            mock_query.filter_by.return_value.first.return_value = None
+            self.assertFalse(check_game_exists(999))  # Check for a non-existing game
 
     @patch("backend.src.dal.check_game_exists", return_value=True)
     @patch("backend.src.models.ConnectionsGame.query")
@@ -114,6 +132,7 @@ class TestDAL(unittest.TestCase):
         mock_commit.reset_mock()
 
         # Test that a correct guess updates the guessed status of the connection
+        game.previous_guesses = []
         update_game_state("test_game_id", ["word1", "word2"], True)
         self.assertTrue(game.connections[0]["guessed"])
         mock_commit.assert_called()
@@ -239,15 +258,13 @@ class TestDAL(unittest.TestCase):
             grid=[], connections=[], previous_guesses=["old_guess"], mistakes_left=3
         )
         mock_get_game_from_db.return_value = game
-        updated_game = reset_game(
-            1, ["new_word1", "new_word2"], {("new_word1", "new_word2"): "new_relationship"}
-        )
+        updated_game = reset_game(1, self.grid, self.connections)
+        self.assertEqual(updated_game.grid, self.grid)  # Check if the grid is updated
+        # Coerce connections into MutableDict
+        mutable_connections = ConnectionsGame.make_connections_mutable(self.connections)
         self.assertEqual(
-            updated_game.grid, ["new_word1", "new_word2"]
-        )  # Check if the grid is updated
-        self.assertEqual(
-            updated_game.connections, {("new_word1", "new_word2"): "new_relationship"}
+            updated_game.connections, mutable_connections
         )  # Check if connections are updated
         self.assertEqual(updated_game.previous_guesses, [])  # Check if previous guesses are cleared
-        self.assertEqual(updated_game.mistakes_left, 2)  # Check if mistakes left are decremented
+        self.assertEqual(updated_game.mistakes_left, 4)  # Check if mistakes left are reset to 4
         mock_commit.assert_called()  # Verify that changes are committed to the database

@@ -105,9 +105,6 @@ def update_game_state(game_id, guess, is_correct):
     # Add the new guess to the list of previous guesses
     game.previous_guesses.append(guess)
 
-    print("Before update:", [conn["guessed"] for conn in game.connections])
-    # Update logic here
-
     # If the guess is incorrect, decrement the number of mistakes left
     if not is_correct:
         game.mistakes_left -= 1
@@ -118,12 +115,10 @@ def update_game_state(game_id, guess, is_correct):
                 connection["guessed"] = True
                 break
 
-    print("After update:", [conn["guessed"] for conn in game.connections])
-
+    # Check if the game is over after the update
     check_game_over(game)
 
     # Save the updated game state to the database
-    # flag_modified(game, "connections")
     db.session.commit()
 
 
@@ -211,7 +206,7 @@ def reset_game(game_id, grid, connections):
     game = get_game_from_db(game_id)
 
     game.grid = grid
-    game.connections = connections
+    game.connections = ConnectionsGame.make_connections_mutable(connections)
     game.previous_guesses = []
     game.mistakes_left = 4
     game.status = GameStatus.IN_PROGRESS
