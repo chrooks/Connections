@@ -16,7 +16,7 @@ Associated Functions:
 """
 
 from flask import Blueprint, request
-from game import (
+from .game import (
     create_new_game,
     get_game_state,
     get_all_games_data,
@@ -24,7 +24,7 @@ from game import (
     process_guess,
     validate_id,
 )
-from utils import parse_and_validate_request, create_response
+from .utils import parse_and_validate_request, create_response
 
 api_bp = Blueprint("connections", __name__)
 

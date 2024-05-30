@@ -13,9 +13,9 @@ Error Handlers:
 """
 
 from flask import Flask
-from api import api_bp
-from utils import create_response
-from models import db
+from .api import api_bp
+from .utils import create_response
+from .models import db
 
 
 def create_app():

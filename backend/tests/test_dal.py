@@ -3,13 +3,15 @@ from unittest.mock import patch
 from sqlalchemy.ext.mutable import MutableDict
 from backend.src.dal import (
     add_new_game,
+    all_conditions_for_win_met,
     check_game_exists,
+    check_game_over,
     get_game_from_db,
     update_game_state,
     is_guess_correct,
     reset_game,
 )
-from backend.src.models import db, ConnectionsGame
+from backend.src.models import GameStatus, db, ConnectionsGame
 
 
 class TestDAL(unittest.TestCase):
@@ -19,12 +21,35 @@ class TestDAL(unittest.TestCase):
     def test_add_new_game(self, mock_commit, mock_add):
         # Test to ensure a new game can be added to the database correctly.
         # This test checks if the `add` and `commit` methods of the database session are called.
-        game_id = add_new_game(["word1", "word2"], {("word1", "word2"): "relationship"})
+        connections = [
+            {
+                "relationship": "Fruits",
+                "guessed": False,
+                "words": ["apple", "banana", "cherry", "date"],
+            },
+            {
+                "relationship": "Ocean Life",
+                "guessed": False,
+                "words": ["whale", "coral", "shark", "dolphin"],
+            },
+            {
+                "relationship": "Space Exploration",
+                "guessed": False,
+                "words": ["astronaut", "rocket", "satellite", "nebula"],
+            },
+            {
+                "relationship": "Musical Instruments",
+                "guessed": False,
+                "words": ["guitar", "piano", "violin", "drum"],
+            },
+        ]
+        grid = [word for connection in connections for word in connection["words"]]
+        game_id = add_new_game(grid, connections)
         self.assertIsNotNone(game_id)  # Ensure that a game ID is returned (not None)
         mock_add.assert_called()  # Verify that the session's add method was called
         mock_commit.assert_called()  # Verify that the session's commit method was called
 
-    @patch("backend.src.dal.Game.query")
+    @patch("backend.src.models.ConnectionsGame.query")
     def test_check_game_exists(self, mock_query):
         # Test to check if the function correctly identifies existing and non-existing games.
         # This test uses a mock query object to simulate database responses.
@@ -34,7 +59,7 @@ class TestDAL(unittest.TestCase):
         self.assertFalse(check_game_exists(999))  # Check for a non-existing game
 
     @patch("backend.src.dal.check_game_exists", return_value=True)
-    @patch("backend.src.dal.Game.query")
+    @patch("backend.src.models.ConnectionsGame.query")
     def test_get_game_from_db(self, mock_query, mock_check_game_exists):
         # Test to ensure a game can be retrieved from the database when it exists.
         # This test also checks if the function returns a ConnectionsGame instance and verifies mutable connections.
@@ -42,15 +67,19 @@ class TestDAL(unittest.TestCase):
         mock_game.connections = [{"key": "value"}]  # Setup a mock connections list
         mock_query.filter_by.return_value.first.return_value = mock_game
         game = get_game_from_db(1)
-        self.assertIsInstance(game, ConnectionsGame)  # Verify that the returned object is an instance of Game
-        self.assertIsInstance(game.connections[0], MutableDict)  # Verify that the connections are mutable dictionaries
+        self.assertIsInstance(
+            game, ConnectionsGame
+        )  # Verify that the returned object is an instance of Game
+        self.assertIsInstance(
+            game.connections[0], MutableDict
+        )  # Verify that the connections are mutable dictionaries
 
     @patch("backend.src.dal.check_game_exists", return_value=False)
-    def test_get_game_from_db_raises(self, mock_check_game_exists):
-        # Test to ensure that an exception is raised when trying to retrieve a non-existing game.
+    def test_get_game_from_db_returns_none(self, mock_check_game_exists):
+        # Test to ensure that None is returned when trying to retrieve a non-existing game.
         # This test checks the error handling of the function.
-        with self.assertRaises(ValueError):
-            get_game_from_db(999)
+        result = get_game_from_db(999)
+        self.assertIsNone(result)
 
     @patch("backend.src.dal.get_game_from_db")
     @patch("backend.src.dal.db.session.commit")
@@ -61,10 +90,10 @@ class TestDAL(unittest.TestCase):
             grid=["word1", "word2", "word3", "word4"],
             connections=[
                 {"words": ["word1", "word2"], "relationship": "synonyms", "guessed": False},
-                {"words": ["word3", "word4"], "relationship": "antonyms", "guessed": False}
+                {"words": ["word3", "word4"], "relationship": "antonyms", "guessed": False},
             ],
             mistakes_left=3,
-            previous_guesses=[]
+            previous_guesses=[],
         )
         mock_get_game_from_db.return_value = game
 
@@ -89,14 +118,117 @@ class TestDAL(unittest.TestCase):
         self.assertTrue(game.connections[0]["guessed"])
         mock_commit.assert_called()
 
+    @patch("backend.src.dal.db.session.commit")
+    def test_check_game_over_loss(self, mock_commit):
+        # Test to ensure the game status is set to LOSS when no mistakes are left
+        game = ConnectionsGame(mistakes_left=0, connections=[{"guessed": False}])
+        check_game_over(game)
+        self.assertEqual(game.status, GameStatus.LOSS)
+        mock_commit.assert_called()
+
+    @patch("backend.src.dal.all_conditions_for_win_met", return_value=True)
+    @patch("backend.src.dal.db.session.commit")
+    def test_check_game_over_win(self, mock_commit, mock_all_conditions_for_win_met):
+        # Test to ensure the game status is set to WIN when all conditions for a win are met
+        game = ConnectionsGame(mistakes_left=3, connections=[{"guessed": True}])
+        check_game_over(game)
+        self.assertEqual(game.status, GameStatus.WIN)
+        mock_commit.assert_called()
+
+    @patch("backend.src.dal.all_conditions_for_win_met", return_value=False)
+    @patch("backend.src.dal.db.session.commit")
+    def test_check_game_over_in_progress(self, mock_commit, mock_all_conditions_for_win_met):
+        # Test to ensure the game status remains IN PROGRESS when not all conditions for a win are met and mistakes are left
+        game = ConnectionsGame(mistakes_left=1, connections=[{"guessed": False}])
+        check_game_over(game)
+        self.assertEqual(game.status, GameStatus.IN_PROGRESS)
+        mock_commit.assert_called()
+
+    @patch("backend.src.dal.ConnectionsGame")
+    def test_all_conditions_for_win_met(self, mock_game):
+        # Create a mock game instance with all connections guessed
+        mock_game.return_value.connections = [
+            {"guessed": True},
+            {"guessed": True},
+            {"guessed": True},
+            {"guessed": True},
+        ]
+        # Test when all conditions for a win are met
+        self.assertTrue(all_conditions_for_win_met(mock_game.return_value))
+
+        # Modify the mock to have one unguessed connection
+        mock_game.return_value.connections = [
+            {"guessed": True},
+            {"guessed": True},
+            {"guessed": True},
+            {"guessed": False},
+        ]
+        # Test when not all conditions for a win are met
+        self.assertFalse(all_conditions_for_win_met(mock_game.return_value))
+
     @patch("backend.src.dal.get_game_from_db")
     def test_is_guess_correct(self, mock_get_game_from_db):
-        # Test to check if the function correctly identifies correct and incorrect guesses.
-        # This test uses a mock game object with predefined connections.
-        game = ConnectionsGame(connections={("word1", "word2"): "relationship"})
+        # Setup
+        game_id = "test_game_id"
+        correct_guess = ["apple", "banana", "cherry", "date"]
+        incorrect_guess = ["apple", "banana", "cherry", "pear"]
+        invalid_guess = ["apple", "banana", "banana", "date"]
+        duplicate_guess = ["apple", "banana", "cherry", "date"]
+        short_guess = ["apple", "banana", "cherry"]  # Less than 4 words
+        non_grid_word_guess = ["apple", "banana", "cherry", "mango"]  # 'mango' is not in the grid
+
+        game = ConnectionsGame(
+            id=game_id,
+            grid=["apple", "banana", "cherry", "date", "pear", "peach", "plum", "grape"],
+            connections=[
+                {"words": ["apple", "banana", "cherry", "date"], "guessed": False},
+                {"words": ["pear", "peach", "plum", "grape"], "guessed": False},
+            ],
+            mistakes_left=3,
+            status=GameStatus.IN_PROGRESS,
+            previous_guesses=[],
+        )
+
+        # Mock the database call to return the game object
         mock_get_game_from_db.return_value = game
-        self.assertTrue(is_guess_correct(1, ["word1", "word2"]))  # Test a correct guess
-        self.assertFalse(is_guess_correct(1, ["word3", "word4"]))  # Test an incorrect guess
+
+        # Test correct guess
+        is_correct, is_valid = is_guess_correct(game_id, correct_guess)
+        self.assertTrue(is_correct)
+        self.assertTrue(is_valid)
+
+        # Test incorrect guess
+        is_correct, is_valid = is_guess_correct(game_id, incorrect_guess)
+        self.assertFalse(is_correct)
+        self.assertTrue(is_valid)
+
+        # Test invalid guess (duplicate words)
+        is_correct, is_valid = is_guess_correct(game_id, invalid_guess)
+        self.assertFalse(is_correct)
+        self.assertFalse(is_valid)
+
+        # Test duplicate guess (already guessed)
+        game.previous_guesses.append(correct_guess)
+        is_correct, is_valid = is_guess_correct(game_id, duplicate_guess)
+        self.assertFalse(is_correct)
+        self.assertFalse(is_valid)
+
+        # Test short guess (less than 4 words)
+        is_correct, is_valid = is_guess_correct(game_id, short_guess)
+        self.assertFalse(is_correct)
+        self.assertFalse(is_valid)
+
+        # Test guess with a word not in the grid
+        is_correct, is_valid = is_guess_correct(game_id, non_grid_word_guess)
+        self.assertFalse(is_correct)
+        self.assertFalse(is_valid)
+
+        # Ensure the game status is still in progress
+        self.assertEqual(game.status, GameStatus.IN_PROGRESS)
+
+        # Ensure no changes to the guessed status of connections
+        self.assertFalse(game.connections[0]["guessed"])
+        self.assertFalse(game.connections[1]["guessed"])
 
     @patch("backend.src.dal.get_game_from_db")
     @patch("backend.src.dal.db.session.commit")
@@ -104,7 +236,7 @@ class TestDAL(unittest.TestCase):
         # Test to ensure that a game can be reset correctly.
         # This test checks if the game grid, connections, and previous guesses are reset, and mistakes are decremented.
         game = ConnectionsGame(
-            grid=[], connections={}, previous_guesses=["old_guess"], mistakes_left=3
+            grid=[], connections=[], previous_guesses=["old_guess"], mistakes_left=3
         )
         mock_get_game_from_db.return_value = game
         updated_game = reset_game(

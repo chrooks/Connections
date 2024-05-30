@@ -15,8 +15,8 @@ Functions:
 - get_all_games(): Retrieves all game data from the database.
 """
 
-from models import db, ConnectionsGame, GameStatus
-from sqlalchemy.ext.mutable import MutableDict
+import uuid
+from .models import db, ConnectionsGame, GameStatus
 
 
 def add_new_game(grid, connections):
@@ -32,9 +32,12 @@ def add_new_game(grid, connections):
     Returns:
         str: The unique identifier of the newly created game.
     """
+    # Coerce connections into MutableDict
+    mutable_connections = ConnectionsGame.make_connections_mutable(connections)
     new_game = ConnectionsGame(
+        id=uuid.uuid4(),
         grid=grid,
-        connections=connections,
+        connections=mutable_connections,
         mistakes_left=4,
         previous_guesses=[],
         status=GameStatus.IN_PROGRESS,

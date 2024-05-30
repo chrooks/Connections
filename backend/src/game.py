@@ -18,7 +18,7 @@ Functions:
 import random
 from os import path
 import json
-from dal import (
+from .dal import (
     add_new_game,
     get_game_from_db,
     is_guess_correct,

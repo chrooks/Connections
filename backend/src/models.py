@@ -37,9 +37,7 @@ class ConnectionsGame(db.Model):
         previous_guesses (JSON): A list of previous guesses made during the game session.
     """
 
-    id: str = db.Column(
-        db.String, primary_key=True, default=lambda: str(uuid.uuid4())
-    )  # Unique identifier for the game session
+    id: str = db.Column(db.String, primary_key=True)  # Unique identifier for the game session
     connections: List["dict"] = db.Column(
         MutableList.as_mutable(db.JSON), default=list
     )  # Serialized list of connection objects
