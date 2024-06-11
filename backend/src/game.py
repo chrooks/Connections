@@ -28,6 +28,7 @@ from .dal import (
     get_all_games,
     check_game_exists,
 )
+
 # from utils import call_llm_api
 
 
@@ -68,6 +69,7 @@ def generate_game_grid():
     # # Parsing the LLM response
     # sets = llm_response.split("\n")
 
+    # TODO: Replace with more sophisticated logic using an LLM
     # Construct the absolute path to the placeholder.json file
     current_dir = path.dirname(__file__)  # Gets the directory where this script is located
     json_path = path.join(
@@ -80,7 +82,7 @@ def generate_game_grid():
 
     grid = []
     connections = []
-    print(data)
+
     for connection in data:
         grid.extend(connection["words"])
         connections.append(connection)
