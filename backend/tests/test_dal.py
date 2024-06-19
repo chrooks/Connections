@@ -9,7 +9,7 @@ from backend.src.dal import (
     check_game_over,
     get_game_from_db,
     update_game_state,
-    is_guess_correct,
+    check_guess,
     reset_game,
 )
 from backend.src.models import GameStatus, db, ConnectionsGame
@@ -212,35 +212,41 @@ class TestDAL(unittest.TestCase):
         mock_get_game_from_db.return_value = game
 
         # Test correct guess
-        is_correct, is_valid = is_guess_correct(game_id, correct_guess)
+        is_correct, is_valid, is_new = check_guess(game_id, correct_guess)
         self.assertTrue(is_correct)
         self.assertTrue(is_valid)
+        self.assertTrue(is_new)
 
         # Test incorrect guess
-        is_correct, is_valid = is_guess_correct(game_id, incorrect_guess)
+        is_correct, is_valid, is_new = check_guess(game_id, incorrect_guess)
         self.assertFalse(is_correct)
         self.assertTrue(is_valid)
+        self.assertTrue(is_new)
 
         # Test invalid guess (duplicate words)
-        is_correct, is_valid = is_guess_correct(game_id, invalid_guess)
+        is_correct, is_valid, is_new = check_guess(game_id, invalid_guess)
         self.assertFalse(is_correct)
         self.assertFalse(is_valid)
+        self.assertTrue(is_new)
 
         # Test duplicate guess (already guessed)
         game.previous_guesses.append(correct_guess)
-        is_correct, is_valid = is_guess_correct(game_id, duplicate_guess)
-        self.assertFalse(is_correct)
-        self.assertFalse(is_valid)
+        is_correct, is_valid, is_new = check_guess(game_id, duplicate_guess)
+        self.assertTrue(is_correct)
+        self.assertTrue(is_valid)
+        self.assertFalse(is_new)
 
         # Test short guess (less than 4 words)
-        is_correct, is_valid = is_guess_correct(game_id, short_guess)
+        is_correct, is_valid, is_new = check_guess(game_id, short_guess)
         self.assertFalse(is_correct)
         self.assertFalse(is_valid)
+        self.assertTrue(is_new)
 
         # Test guess with a word not in the grid
-        is_correct, is_valid = is_guess_correct(game_id, non_grid_word_guess)
+        is_correct, is_valid, is_new = check_guess(game_id, non_grid_word_guess)
         self.assertFalse(is_correct)
         self.assertFalse(is_valid)
+        self.assertTrue(is_new)
 
         # Ensure the game status is still in progress
         self.assertEqual(game.status, GameStatus.IN_PROGRESS)

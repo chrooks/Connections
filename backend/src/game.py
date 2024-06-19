@@ -18,10 +18,12 @@ Functions:
 import random
 from os import path
 import json
+
+from backend.src.models import ConnectionsGame
 from .dal import (
     add_new_game,
     get_game_from_db,
-    is_guess_correct,
+    check_guess,
     reset_game,
     update_game_state,
     check_game_exists,
@@ -92,31 +94,32 @@ def generate_game_grid():
     return grid, connections
 
 
-def process_guess(game_id, guess):
+def process_guess(game_id: str, guess: "list[str]") -> "tuple[dict, bool, bool, bool]":
     """
     Validates the guess and updates the game state by calling the respective functions from dal.py.
-    Returns the updated game state, a boolean confirming whether the guess is valid, and whether the guess was correct.
-
+    Returns the updated game game state, a boolean confirming whether the guess is valid, whether the guess was correct,
+    and whether the guess was new.
     :param game_id: The ID of the game session where the guess is being made.
     :param guess: A list of four words that represent the player's guess.
     :return: A tuple containing the updated game state,
                                 a boolean indicating if the guess was valid,
-                                and a boolean indicating if the guess was correct.
+                                a boolean indicating if the guess was correct,
+                                and a boolean indicating if the guess was new.
     """
-    is_correct, is_valid = is_guess_correct(game_id, guess)
+    is_correct, is_valid, is_new = check_guess(game_id, guess)
     if not is_valid:
-        return None, is_valid, False
+        return None, is_valid, False, is_new
 
     update_game_state(game_id, guess, is_correct)
     game_state = get_game_from_db(game_id)
-    return game_state, is_valid, is_correct
+    return game_state, is_valid, is_correct, is_new
 
 
-def create_new_game():
+def create_new_game() -> "ConnectionsGame":
     """
     Creates a new game session with a generated game grid and connections, and stores it in the database.
 
-    :return: A tuple containing the game ID and the initial game state.
+    :return: The newly created ConnectionsGame object.
     """
     grid, connections = generate_game_grid()
 
@@ -129,17 +132,20 @@ def create_new_game():
     return game
 
 
-def get_game_state(game_id):
+def get_game_state(game_id: str) -> dict:
     """
     Retrieves the current game state for the specified game ID.
 
     :param game_id: The ID of the game session.
     :return: The Game object if the game exists, raises ValueError otherwise.
     """
-    return get_game_from_db(game_id)
+    game_state = get_game_from_db(game_id)
+    if game_state is None:
+        raise ValueError("No game found with the provided ID.")
+    return game_state
 
 
-def restart_game(game_id):
+def restart_game(game_id: str) -> dict:
     """
     Restarts the game specified by this id with a new grid and resets the game state.
     Returns the restarted game state.
@@ -158,7 +164,7 @@ def restart_game(game_id):
     return reset_game(game_id, grid, connections)
 
 
-def get_all_games_data():
+def get_all_games_data() -> dict:
     """
     Retrieves the status of all games from the database.
 

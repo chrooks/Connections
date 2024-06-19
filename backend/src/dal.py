@@ -19,7 +19,7 @@ import uuid
 from .models import db, ConnectionsGame, GameStatus
 
 
-def add_new_game(grid, connections):
+def add_new_game(grid: "list[str]", connections: "list[dict]") -> str:
     """
     Adds a new game to the database with the specified grid and connections.
     Initializes the game with 4 mistakes allowed, an empty list of previous guesses,
@@ -47,7 +47,7 @@ def add_new_game(grid, connections):
     return new_game.id
 
 
-def check_game_exists(game_id):
+def check_game_exists(game_id: str) -> bool:
     """
     Determines if a game session with the specified ID is present in the database.
 
@@ -60,7 +60,7 @@ def check_game_exists(game_id):
     return ConnectionsGame.query.filter_by(id=game_id).first() is not None
 
 
-def get_game_from_db(game_id):
+def get_game_from_db(game_id: str) -> "ConnectionsGame | None":
     """
     Retrieves a game from the database using the game ID after checking its existence.
 
@@ -85,7 +85,7 @@ def get_game_from_db(game_id):
     return game
 
 
-def update_game_state(game_id, guess, is_correct):
+def update_game_state(game_id: str, guess: "list[str]", is_correct: bool):
     """
     Updates the game state based on the result of a guess, adding the guess to previous guesses,
     decrementing the number of guesses if the guess was incorrect, and updating the guessed status
@@ -122,7 +122,7 @@ def update_game_state(game_id, guess, is_correct):
     db.session.commit()
 
 
-def check_game_over(game):
+def check_game_over(game: "ConnectionsGame"):
     """
     Evaluates the game's status based on the remaining mistakes and win conditions.
 
@@ -143,7 +143,7 @@ def check_game_over(game):
     db.session.commit()
 
 
-def all_conditions_for_win_met(game):
+def all_conditions_for_win_met(game: "ConnectionsGame") -> bool:
     """
     Checks if all conditions for a win are met in the game.
 
@@ -154,15 +154,16 @@ def all_conditions_for_win_met(game):
     return all(connection["guessed"] for connection in game.connections)
 
 
-def is_guess_correct(game_id, guess):
+def check_guess(game_id: str, guess: "list[str]") -> "tuple[bool, bool]":
     """
     Determines if the guess is correct and valid based on the game's relationship definitions and rules.
 
     :param game_id: The ID of the game session where the guess is being made.
     :param guess: A list of four words that represent the player's guess.
-    :return: A tuple (is_correct, is_valid) where:
+    :return: A tuple (is_correct, is_valid, is_new) where:
         - is_correct is a boolean indicating if the guess is correct.
         - is_valid is a boolean indicating if the guess is valid.
+        - is_new is a boolean indicating if the guess is new.
     """
 
     game = get_game_from_db(game_id)
@@ -172,15 +173,17 @@ def is_guess_correct(game_id, guess):
 
     # If the game is not in progress, return False for both is_correct and is_valid
     if game.status != GameStatus.IN_PROGRESS:
-        return False, False
+        return False, False, False
 
     # Check if the guess is valid
     is_valid = (
         len(guess) == 4
         and all(word in game.grid for word in guess)
         and len(set(guess)) == 4  # Ensure no duplicate words in the guess
-        and guess not in game.previous_guesses
     )
+
+    # Check if the guess is new
+    is_new = guess not in game.previous_guesses
 
     # Check if the guess is correct
     is_correct = False
@@ -191,10 +194,10 @@ def is_guess_correct(game_id, guess):
                 is_correct = True
                 break
 
-    return is_correct, is_valid
+    return is_correct, is_valid, is_new
 
 
-def reset_game(game_id, grid, connections):
+def reset_game(game_id: str, grid: "list[str]", connections: "list[dict]") -> "ConnectionsGame":
     """
     Resets the game with a new grid and connections, updating the game state in the database.
 
@@ -215,7 +218,7 @@ def reset_game(game_id, grid, connections):
     return game
 
 
-def get_all_games():
+def get_all_games() -> "list[ConnectionsGame]":
     """
     Retrieves all game data from the database.
 
