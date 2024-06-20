@@ -28,7 +28,6 @@ from .dal import (
     update_game_state,
     check_game_exists,
     get_all_games,
-    check_game_exists,
 )
 
 # from utils import call_llm_api
@@ -153,10 +152,6 @@ def restart_game(game_id: str) -> dict:
     :param game_id: The ID of the game session to restart.
     :return: The restarted game state.
     """
-    # Check if the game exists
-    if not check_game_exists(game_id):
-        raise ValueError("No game found with the provided ID.")
-
     # Generate a new game grid and connections
     grid, connections = generate_game_grid()
 

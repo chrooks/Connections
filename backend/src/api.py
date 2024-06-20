@@ -6,6 +6,7 @@ Detailed Endpoint Descriptions:
 - POST /submit-guess: Accepts and evaluates a player's guess, comparing it to established game connections.
 - GET /game-status: Provides the current status and progress of an ongoing game session.
 - POST /restart-game: Resets an existing game with a new grid, effectively starting a new game session.
+- GET /all-games: Retrieves data for all game sessions.
 
 
 Associated Functions:
@@ -13,8 +14,8 @@ Associated Functions:
 - submit_guess(): Processes a player's guess and checks its accuracy against the game's connections.
 - game_status(): Fetches and returns the current state of a game session.
 - restart_game_route(): Resets and starts a new game with a fresh grid.
+- get_all_game_data(): Retrieves data for all game sessions.
 """
-
 from flask import Blueprint, request
 from .game import (
     create_new_game,
@@ -76,12 +77,11 @@ def submit_guess():
         )
 
     # Process the guess and update the game state
-    game, is_valid, is_correct = process_guess(game_id, guess)
+    game_state, is_valid, is_correct, is_new = process_guess(game_id, guess)
     if not is_valid:
-        return create_response(error="Invalid guess or previously guessed.", status_code=400)
+        return create_response(error="Invalid guess.", status_code=400)
 
-    game_state = game.to_state()
-    game_state.update({"isCorrect": is_correct})
+    game_state.update({"isCorrect": is_correct, "isNewGuess": is_new})
     return create_response(data=game_state)
 
 
@@ -101,16 +101,14 @@ def game_status():
     if not validate_id(game_id):
         return create_response(error="Invalid game ID.", status_code=404)
 
-    # Validate the game state
+    # Get the game state
     game = get_game_state(game_id)
-    if not game:
-        return create_response(error="Invalid or missing game ID.", status_code=404)
 
     return create_response(data=game.to_state())
 
 
 @api_bp.route("/restart-game", methods=["POST"])
-def restart_game_route():
+def restart_game():
     """
     Restarts the game with a new grid, resetting mistakes left.
     Requires JSON payload with gameId.
