@@ -1,5 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch, mock_open
+from flask import Flask
+from backend.src.dal import db
 from backend.src.game import (
     generate_game_grid,
     create_new_game,
@@ -15,6 +17,17 @@ from backend.src.models import ConnectionsGame
 class TestGame(unittest.TestCase):
 
     def setUp(self):
+        # Game Logic
+        # Set up Flask app and push application context
+        self.app = Flask(__name__)
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        self.app.config["TESTING"] = True
+        db.init_app(self.app)
+        with self.app.app_context():
+            db.create_all()  # Create all tables
+        self.ctx = self.app.app_context()
+        self.ctx.push()
+
         self.connections = [
             {
                 "relationship": "Fruits",
@@ -200,12 +213,13 @@ class TestGame(unittest.TestCase):
 
     def test_restart_game_not_exists(self):
         # This test ensures that attempting to restart a non-existent game raises a ValueError.
-        with patch("backend.src.game.check_game_exists", return_value=False):
-            with self.assertRaises(ValueError) as context:
-                restart_game(999)
-            self.assertEqual(
-                str(context.exception), "No game found with the provided ID."
-            )  # Check the error message
+        with self.app.app_context():
+            with patch("backend.src.game.check_game_exists", return_value=False):
+                with self.assertRaises(ValueError) as context:
+                    restart_game(999)
+                self.assertEqual(
+                    str(context.exception), "No game found with the provided ID: 999"
+                )  # Check the error message
 
     def test_get_all_games_data(self):
         # This test checks if the get_all_games_data function retrieves all games data correctly

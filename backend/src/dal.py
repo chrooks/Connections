@@ -207,6 +207,8 @@ def reset_game(game_id: str, grid: "list[str]", connections: "list[dict]") -> "C
     :return: The updated game state.
     """
     game = get_game_from_db(game_id)
+    if game is None:
+        raise ValueError(f"No game found with the provided ID: {game_id}")
 
     game.grid = grid
     game.connections = ConnectionsGame.make_connections_mutable(connections)

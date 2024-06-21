@@ -5,8 +5,12 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 
 from flask import Flask
-from backend.src.api import game_status, generate_grid, submit_guess
-from backend.src.game import restart_game
+from backend.src.api import (
+    game_status,
+    generate_grid,
+    submit_guess,
+    restart_game,
+)
 from backend.src.utils import create_response
 from backend.src.models import db
 
@@ -257,7 +261,7 @@ class TestAPI(unittest.TestCase):
         mock_create_response.return_value = MagicMock(status_code=400)
 
         # Execute
-        response = restart_game("dummy_id")  # Added dummy ID for the function call
+        response = restart_game()  # Added dummy ID for the function call
 
         # Verify
         mock_create_response.assert_called_with(error="Error parsing request", status_code=400)
@@ -275,7 +279,7 @@ class TestAPI(unittest.TestCase):
         mock_create_response.return_value = MagicMock(status_code=404)
 
         # Execute
-        response = restart_game("invalid_id")  # Using the specific invalid ID
+        response = restart_game()  # Using the specific invalid ID
 
         # Verify
         mock_create_response.assert_called_with(error="Invalid game ID.", status_code=404)
@@ -301,7 +305,7 @@ class TestAPI(unittest.TestCase):
         mock_create_response.return_value = MagicMock(status_code=200)
 
         # Execute
-        response = restart_game("valid_id")  # Using the specific valid ID
+        response = restart_game()  # Using the specific valid ID
 
         # Verify
         mock_create_response.assert_called_with(data={"gameId": "valid_id", "status": "RESTARTED"})

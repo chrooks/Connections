@@ -170,3 +170,5 @@ def get_all_games_data() -> dict:
     for game in all_games:
         games_data[game.id] = game.to_state()
     return games_data
+
+
