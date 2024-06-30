@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 from flask import Flask
 from sqlalchemy.ext.mutable import MutableDict
-from backend.src.dal import (
+from backend.src.dal.dal import (
     add_new_game,
     all_conditions_for_win_met,
     check_game_exists,
@@ -12,7 +12,7 @@ from backend.src.dal import (
     check_guess,
     reset_game,
 )
-from backend.src.models import GameStatus, db, ConnectionsGame
+from backend.src.models.models import GameStatus, db, ConnectionsGame
 
 
 class TestDAL(unittest.TestCase):

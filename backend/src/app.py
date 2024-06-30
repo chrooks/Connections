@@ -12,17 +12,16 @@ Error Handlers:
 - 500 Internal Server Error: Handles internal server errors.
 """
 
+import os
 from flask import Flask
-from .api import api_bp
-from .utils import create_response
-from .models import db
+from .models.models import db
+from .blueprints.api.routes import api_bp
+from .services.utils import create_response
 
 
 def create_app():
     app = Flask(__name__)
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-        "sqlite:////home/chrooks/projects/Connections/backend/connectionsdb.db"
-    )
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
     db.init_app(app)  # Bind the app with the SQLAlchemy instance
     app.register_blueprint(api_bp, url_prefix="/connections")
 

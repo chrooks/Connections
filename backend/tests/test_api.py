@@ -5,14 +5,14 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 
 from flask import Flask
-from backend.src.api import (
+from backend.src.blueprints.api.routes import (
     game_status,
     generate_grid,
     submit_guess,
     restart_game,
 )
-from backend.src.utils import create_response
-from backend.src.models import db
+from backend.src.services.utils import create_response
+from backend.src.models.models import db
 
 
 class TestAPI(unittest.TestCase):

@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock, patch, mock_open
 from flask import Flask
-from backend.src.dal import db
-from backend.src.game import (
+from backend.src.dal.dal import db
+from backend.src.game.game import (
     generate_game_grid,
     create_new_game,
     get_all_games_data,
@@ -11,7 +11,7 @@ from backend.src.game import (
     restart_game,
     validate_id,
 )
-from backend.src.models import ConnectionsGame
+from backend.src.models.models import ConnectionsGame
 
 
 class TestGame(unittest.TestCase):

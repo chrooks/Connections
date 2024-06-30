@@ -9,6 +9,7 @@ Functions:
 - parse_and_validate_request(required_fields): Parses and validates the request JSON payload.
 - create_response(data, error, status_code): Creates a JSON response with the provided data or error message.
 """
+
 import requests
 from flask import request, jsonify
 

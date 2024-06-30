@@ -16,7 +16,8 @@ Functions:
 """
 
 import uuid
-from .models import db, ConnectionsGame, GameStatus
+import json
+from ..models.models import db, ConnectionsGame, GameStatus
 
 
 def add_new_game(grid: "list[str]", connections: "list[dict]") -> str:
@@ -35,11 +36,11 @@ def add_new_game(grid: "list[str]", connections: "list[dict]") -> str:
     # Coerce connections into MutableDict
     mutable_connections = ConnectionsGame.make_connections_mutable(connections)
     new_game = ConnectionsGame(
-        id=uuid.uuid4(),
+        id=str(uuid.uuid4()),  # Convert UUID to string
+        connections=connections,
         grid=grid,
-        connections=mutable_connections,
         mistakes_left=4,
-        previous_guesses=[],
+        previous_guesses=[],  # Serialize an empty list to JSON string
         status=GameStatus.IN_PROGRESS,
     )
     db.session.add(new_game)

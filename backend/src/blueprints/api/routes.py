@@ -1,5 +1,5 @@
 """
-This module, 'api.py', serves as the core interface for the Connections game API, defining and managing all the necessary API endpoints for game interaction.
+This module, 'routes.py', serves as the core interface for the Connections game API, defining and managing all the necessary API endpoints for game interaction.
 
 Detailed Endpoint Descriptions:
 - POST /generate-grid: Initiates a new game session by generating a fresh game grid.
@@ -16,8 +16,9 @@ Associated Functions:
 - restart_game_route(): Resets and starts a new game with a fresh grid.
 - get_all_game_data(): Retrieves data for all game sessions.
 """
+
 from flask import Blueprint, request
-from .game import (
+from ...game.game import (
     create_new_game,
     get_game_state,
     get_all_games_data,
@@ -25,7 +26,7 @@ from .game import (
     process_guess,
     validate_id,
 )
-from .utils import parse_and_validate_request, create_response
+from ...services.utils import parse_and_validate_request, create_response
 
 api_bp = Blueprint("connections", __name__)
 

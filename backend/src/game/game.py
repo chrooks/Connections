@@ -19,8 +19,8 @@ import random
 from os import path
 import json
 
-from backend.src.models import ConnectionsGame
-from .dal import (
+from ..models.models import ConnectionsGame
+from ..dal.dal import (
     add_new_game,
     get_game_from_db,
     check_guess,
@@ -74,7 +74,7 @@ def generate_game_grid():
     # Construct the absolute path to the placeholder.json file
     current_dir = path.dirname(__file__)  # Gets the directory where this script is located
     json_path = path.join(
-        current_dir, "../schemas/connections.json"
+        current_dir, "../../schemas/connections.json"
     )  # Constructs the path to the JSON file
 
     # Load data from placeholder.json
@@ -170,5 +170,3 @@ def get_all_games_data() -> dict:
     for game in all_games:
         games_data[game.id] = game.to_state()
     return games_data
-
-
