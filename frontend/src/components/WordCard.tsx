@@ -1,21 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
 
 interface WordCardProps {
   word: string;
+  onSelected: () => void;
 }
 
-const WordCard: React.FC<WordCardProps> = ({ word }) => {
-  const [isSelected, setIsSelected] = useState(false);
-
-  const toggleSelection = () => {
-    setIsSelected(!isSelected);
-  };
-
+const WordCard: React.FC<WordCardProps> = ({ word, onSelected }) => {
   return (
-    <div
-      className={`word-card ${isSelected ? "word-card-selected" : ""}`}
-      onClick={toggleSelection}
-    >
+    <div onClick={onSelected}>
       {word}
     </div>
   );

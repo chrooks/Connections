@@ -28,6 +28,8 @@
   font-weight: 600; // Semi-bold
   text-transform: uppercase; // Text in caps
   background-color: $unselected-card;
+  cursor: pointer; // Change cursor to be clickable like a button
+  user-select: none; // Make text non-selectable
 }
 
 .word-card.word-card-selected {

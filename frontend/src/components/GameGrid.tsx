@@ -1,26 +1,36 @@
 import React from "react";
 import WordCard from "./WordCard";
+import useGameGrid from "../hooks/useGameGrid";
 
 interface GameGridProps {
-  // Define the props for the GameGrid component
-  // e.g., words: string[], onWordSelected: (word: string) => void, etc.
+  onWordSelected: (word: string) => void;
 }
 
-const GameGrid: React.FC<GameGridProps> = (props) => {
-  // Logic for rendering the grid of WordCard components based on the game data
-  // You can use a loop or map function to generate the WordCard components
+/**
+ * GameGrid component to display a grid of word cards.
+ * Fetches the words using the useGameGrid hook and handles loading and error states.
+ * 
+ * @param {Object} props - The component props.
+ * @param {Function} props.onWordSelected - Callback function to handle word selection.
+ * 
+ * @returns {JSX.Element} The rendered component.
+ */
+const GameGrid: React.FC<GameGridProps> = ({ onWordSelected }) => {
+  const { words, loading, error } = useGameGrid();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <div className="game-grid">
-      {/* Render the WordCard components */}
-      {/* Example: */}
-      {/* {props.words.map((word, index) => (
-        <WordCard key={index} word={word} onSelected={() => props.onWordSelected(word)} />
-      ))} */}
-      <WordCard word="test" />
-      <WordCard word="test" />
-      <WordCard word="test" />
-      <WordCard word="test" />
+      {words.map((word, index) => (
+        <WordCard key={index} word={word} onSelected={() => onWordSelected(word)} />
+      ))}
     </div>
   );
 };
