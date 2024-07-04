@@ -1,9 +1,10 @@
 import React from "react";
 import WordCard from "./WordCard";
-import useGameGrid from "../hooks/useGameGrid";
 
 interface GameGridProps {
-  onWordSelected: (word: string) => void;
+  words: string[];
+  loading: boolean;
+  error: string | null;
 }
 
 /**
@@ -11,12 +12,12 @@ interface GameGridProps {
  * Fetches the words using the useGameGrid hook and handles loading and error states.
  * 
  * @param {Object} props - The component props.
- * @param {Function} props.onWordSelected - Callback function to handle word selection.
- * 
+ * @param {Array} props.words - The array of words to display.
+ * @param {boolean} props.loading - The loading state.
+ * @param {string} props.error - The error message.
  * @returns {JSX.Element} The rendered component.
  */
-const GameGrid: React.FC<GameGridProps> = ({ onWordSelected }) => {
-  const { words, loading, error } = useGameGrid();
+const GameGrid: React.FC<GameGridProps> = ({ words, loading, error }) => {
 
   if (loading) {
     return <div>Loading...</div>;
@@ -28,8 +29,8 @@ const GameGrid: React.FC<GameGridProps> = ({ onWordSelected }) => {
 
   return (
     <div className="game-grid">
-      {words.map((word, index) => (
-        <WordCard key={index} word={word} onSelected={() => onWordSelected(word)} />
+      {words.map((word) => (
+        <WordCard word={word} />
       ))}
     </div>
   );

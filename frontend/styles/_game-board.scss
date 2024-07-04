@@ -1,7 +1,13 @@
 .game-instructions {
   font-size: 1.125rem;
   color: $black;
+  margin: 0.8rem 0;
 }
+
+.game-mistake-tracker {
+  margin: 0.8rem 0;
+}
+
 .mistake-tracker-label {
   font-size: 1rem;
   color: $black;
@@ -23,13 +29,14 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 0.5rem; // 8px in rems (1rem = 16px)
+  margin: 0.25rem; // 8px in rems (1rem = 16px)
   font-size: 1.25rem; // 20px in rems (1rem = 16px)
-  font-weight: 600; // Semi-bold
+  font-weight: 700; // Semi-bold
   text-transform: uppercase; // Text in caps
   background-color: $unselected-card;
   cursor: pointer; // Change cursor to be clickable like a button
   user-select: none; // Make text non-selectable
+  transition: background-color 0.25s, color 0.25s; // Add transition for background-color and color
 }
 
 .word-card.word-card-selected {
@@ -39,16 +46,27 @@
 
 .button-bar {
   button {
-    border: 1px solid $black;
+    border: 1.5px solid $black;
     background-color: $white;
     border-radius: 2rem; // Curved border
     color: $black;
     font-size: 1rem;
+    font-weight: 500;
     padding: 0.4rem 0.6rem;
   }
-  button.deselect-button {
-    svg {
-      padding: 0 2px;
-    }
+
+  button.button-unprimed {
+    border-color: $unselected-button;
+    color: $unselected-button;
+    cursor: default;
   }
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(
+    4,
+    1fr
+  ); /* Adjust the gap between grid items as needed */
 }
