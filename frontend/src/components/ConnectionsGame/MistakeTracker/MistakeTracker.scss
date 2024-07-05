@@ -1,0 +1,17 @@
+.mistake-tracker {
+  margin: 1.5rem 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1.5rem 0;
+
+  .mistake-tracker-label {
+    font-size: 1rem;
+    color: $black;
+  }
+
+  .mistake-tracker-bubbles {
+    display: flex;
+  }
+}

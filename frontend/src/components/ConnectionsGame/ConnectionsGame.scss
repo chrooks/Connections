@@ -1,0 +1,12 @@
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  .game-instructions {
+    font-size: 1.125rem;
+    color: $black;
+    margin: 0.8rem 0;
+  }
+}

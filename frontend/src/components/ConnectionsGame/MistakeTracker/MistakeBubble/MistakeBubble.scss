@@ -1,0 +1,8 @@
+.mistake-bubble {
+  width: 1rem; // 16px in rems (1rem = 16px)
+  height: 1rem; // 16px in rems (1rem = 16px)
+  border-radius: 50%; // Circle shape
+  background-color: $unselected-button;
+  display: block;
+  margin: 0.1rem 0.25rem;
+}

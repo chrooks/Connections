@@ -11,6 +11,14 @@ $unselected-button: #7f7f7f;
 $black: #000000;
 $white: #ffffff;
 
+:root {
+  --animation-duration: 500ms; // Default value, will be overridden by React
+  --animation-delay: 100ms; // Default value, will be overridden by React
+}
+
+$animation-duration: var(--animation-duration);
+$animation-delay: var(--animation-delay);
+
 @font-face {
   font-family: "Maven Pro";
   src: url("../src/assets/fonts/MavenPro.ttf") format("truetype");

@@ -1,14 +1,14 @@
 import React from "react";
-import Navbar from "./components/navbar/Navbar";
-import Game from "./components/Game";
-import { SelectedWordsProvider } from "./context/SelectedWordsContext";
+import Navbar from "../Navbar/Navbar";
+import ConnectionsGame from "../ConnectionsGame/ConnectionsGame";
+import { SelectedWordsProvider } from "../../context/SelectedWordsContext";
 
 const App: React.FC = () => {
   return (
     <SelectedWordsProvider>
       <div className="app">
         <Navbar />
-        <Game />
+        <ConnectionsGame />
       </div>
     </SelectedWordsProvider>
   );

@@ -1,5 +1,5 @@
 import React from 'react'; // Import React library for JSX support
-import { useSelectedWords } from '../context/SelectedWordsContext';
+import { useSelectedWords } from '../../../context/SelectedWordsContext';
 
 // Define the props interface for DeselectButton component
 interface DeselectButtonProps {
@@ -14,7 +14,8 @@ const DeselectButton: React.FC<DeselectButtonProps> = ({ onClick }) => {
   // Render a button element with an onClick event handler
   return (
     <button
-      className={`deselect-button ${isReadyToDeselect ? "" : "button-unprimed"} p-3 mx-2`}
+      className={`deselect-button ${isReadyToDeselect ? "" : "button-unprimed"} 
+       `}
       onClick={() => {
         if (isReadyToDeselect) {
           clearWords();

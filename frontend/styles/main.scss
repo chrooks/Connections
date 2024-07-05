@@ -1,8 +1,12 @@
-@import 'variables';
-@import 'mixins';
-@import 'navbar';
-@import 'game-board';
-@import 'extra-ui';
+@import "variables";
+@import "navbar";
+@import "../src/components/ConnectionsGame/ConnectionsGame";
+@import "../src/components/ConnectionsGame/GameGrid/GameGrid";
+@import "../src/components/ConnectionsGame/GameGrid/WordCard/WordCard";
+@import "../src/components/ConnectionsGame/MistakeTracker/MistakeTracker";
+@import "../src/components/ConnectionsGame/MistakeTracker/MistakeBubble/MistakeBubble";
+@import "../src/components/ConnectionsGame/ControlButtonBar/ControlButtonBar";
+@import "../src/components/Navbar/Navbar";
 
 .app {
   font-family: $font-primary;

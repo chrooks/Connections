@@ -3,13 +3,13 @@ import ShuffleButton from "./ShuffleButton";
 import DeselectButton from "./DeselectButton";
 import SubmitButton from "./SubmitButton";
 
-interface ButtonBarProps {
+interface ControlButtonBarProps {
   onShuffle: () => void;
   onDeselect: () => void;
   onSubmit: () => void;
 }
 
-const ButtonBar: React.FC<ButtonBarProps> = (props) => {
+const ControlButtonBar: React.FC<ControlButtonBarProps> = (props) => {
   return (
     <div className="button-bar">
       <ShuffleButton onClick={props.onShuffle} />
@@ -19,4 +19,4 @@ const ButtonBar: React.FC<ButtonBarProps> = (props) => {
   );
 };
 
-export default ButtonBar;
+export default ControlButtonBar;

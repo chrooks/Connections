@@ -1,0 +1,39 @@
+.word-card {
+  width: 9.375rem; // 150px
+  height: 5rem; // 80px
+  border-radius: 0.25rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0.25rem; // 8px
+  font-size: 1.25rem; // 20px
+  font-weight: 700;
+  text-transform: uppercase;
+  background-color: $unselected-card;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.25s, color 0.25s, transform $animation-duration ease;
+
+  &.selected {
+    background-color: $selected-card;
+    color: $white;
+  }
+
+  &.slide-up {
+    transform: translateY(-0.75rem);
+  }
+}
+
+@media (max-width: 640px) {
+  .word-card {
+    width: 8rem; // 128px
+    font-size: 1rem; // 16px
+  }
+}
+
+@media (max-width: 576px) {
+  .word-card {
+    width: 7.25rem; // 116px
+    height: 7.25rem; // 116px
+  }
+}
