@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { BASE_URL } from "../config/gameConfig";
+import { apiPost } from "../lib/api";
 
 // Result returned from submitGuess for animation chaining
 export interface SubmitGuessResult {
@@ -39,13 +39,8 @@ const useSubmitGuess = (
     setError(null);
 
     try {
-      const response = await fetch(`${BASE_URL}/submit-guess`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ gameId: gameId, guess: selectedWords }),
-      });
+      // Send authenticated POST request to submit guess
+      const response = await apiPost("/submit-guess", { gameId: gameId, guess: selectedWords });
 
       const result = await response.json();
 

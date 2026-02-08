@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
-import { BASE_URL, GAME_ID } from "../config/gameConfig";
+import { apiPost, apiGet } from "../lib/api";
+
+// Store current game ID in memory (persists across hook calls but not page refreshes)
+let currentGameId: string | null = null;
 
 /**
  * Custom hook to manage the game grid state.
  * Fetches the game grid data from the server and handles loading and error states.
+ * Automatically creates a new game if none exists.
  *
  * @param {Function} setMistakesLeft - A function to update the mistakesLeft state.
- * @returns {Object} An object containing the words array, loading state, error state, connections, and shuffleWords function.
+ * @returns {Object} An object containing the words array, loading state, error state, connections, gameId, and shuffleWords function.
  */
 const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
   // State to store the words for the game grid
@@ -17,51 +21,75 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
   const [error, setError] = useState<string | null>(null);
   // State to store the connections
   const [connections, setConnections] = useState<any[]>([]);
+  // State to store the current game ID
+  const [gameId, setGameId] = useState<string | null>(currentGameId);
 
   useEffect(() => {
     /**
-     * Fetches the game grid data from the server.
-     * Updates the words state if the fetch is successful.
-     * Updates the error state if there is an error during the fetch.
-     * Sets the loading state to false once the fetch is complete.
+     * Creates a new game and returns the game ID.
      */
-    const fetchGameState = async () => {
+    const createNewGame = async (): Promise<string | null> => {
       try {
-        // Send a POST request to the server to fetch the game grid data
-        const response = await fetch(`${BASE_URL}/game-status`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            gameId: GAME_ID,
-          }),
-        });
-        // Parse the JSON response from the server
+        const response = await apiGet("/generate-grid");
         const jsonResponse = await response.json();
+        if (response.ok && jsonResponse.data?.gameId) {
+          return jsonResponse.data.gameId;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    };
+
+    /**
+     * Fetches the game state for the given game ID.
+     */
+    const fetchGameState = async (id: string) => {
+      const response = await apiPost("/game-status", { gameId: id });
+      const jsonResponse = await response.json();
+
+      if (response.ok && jsonResponse.data) {
         const data = jsonResponse.data;
-        console.log(data);
-        if (response.ok) {
-          // If the response is successful, update the words state with the fetched data
-          setWords(data.grid);
-          // Update the mistakesLeft state with the fetched data
-          setMistakesLeft(data.mistakesLeft);
-          // Update the connections state with the fetched data
-          setConnections(data.connections);
+        setWords(data.grid);
+        setMistakesLeft(data.mistakesLeft);
+        setConnections(data.connections);
+        return true;
+      }
+      return false;
+    };
+
+    /**
+     * Main initialization: try existing game or create new one.
+     */
+    const initializeGame = async () => {
+      try {
+        // If we have a stored game ID, try to fetch it
+        if (currentGameId) {
+          const success = await fetchGameState(currentGameId);
+          if (success) {
+            setGameId(currentGameId);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // No valid game exists, create a new one
+        const newGameId = await createNewGame();
+        if (newGameId) {
+          currentGameId = newGameId;
+          setGameId(newGameId);
+          await fetchGameState(newGameId);
         } else {
-          // If the response is not successful, update the error state with the error message
-          setError(data.error || "Failed to fetch game grid");
+          setError("Failed to create a new game");
         }
       } catch (err) {
-        // If there is an error during the fetch, update the error state with the error message
         setError((err as Error).message);
       } finally {
-        // Set the loading state to false once the fetch is complete
         setLoading(false);
       }
     };
 
-    fetchGameState();
+    initializeGame();
   }, [setMistakesLeft]);
 
   /**
@@ -87,7 +115,7 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
     });
   };
 
-  return { words, loading, error, connections, shuffleWords };
+  return { words, loading, error, connections, shuffleWords, gameId };
 };
 
 export default useGameState;

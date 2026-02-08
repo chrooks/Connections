@@ -1,0 +1,218 @@
+// Auth component styles
+
+// Modal overlay with semi-transparent background
+.auth-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+// Modal container
+.auth-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 400px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  outline: none;
+}
+
+// Modal content area with padding
+.auth-modal-content {
+  padding: 2rem;
+  position: relative;
+
+  h2 {
+    margin: 0 0 1.5rem 0;
+    text-align: center;
+    font-weight: 600;
+  }
+}
+
+// Close button in top-right corner
+.auth-close-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  cursor: pointer;
+  color: #666;
+  line-height: 1;
+  padding: 0.25rem;
+
+  &:hover {
+    color: #333;
+  }
+}
+
+// Form group styling
+.form-group {
+  margin-bottom: 1rem;
+
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+  }
+
+  input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: #000;
+    }
+
+    &:disabled {
+      background-color: #f5f5f5;
+    }
+
+    &::placeholder {
+      color: #999;
+    }
+  }
+}
+
+// Submit button styling
+.auth-submit-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #000;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: #333;
+  }
+
+  &:disabled {
+    background-color: #999;
+    cursor: not-allowed;
+  }
+}
+
+// Error message styling
+.auth-error {
+  background-color: #fee;
+  color: #c00;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+// Success message styling
+.auth-message {
+  background-color: #efe;
+  color: #060;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+// Toggle link between sign in/sign up
+.auth-toggle {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.auth-toggle-btn {
+  background: none;
+  border: none;
+  color: #000;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover {
+    color: #333;
+  }
+}
+
+// User menu in navbar with dropdown
+.user-menu {
+  position: relative;
+}
+
+// User icon button
+.user-menu-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  font-size: 1.25rem;
+  color: #5a594e;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: #000;
+  }
+}
+
+// Dropdown menu
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+// User email in dropdown
+.user-menu-email {
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: #666;
+  border-bottom: 1px solid #eee;
+  word-break: break-word;
+}
+
+// Logout button in dropdown
+.user-menu-logout {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #333;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f5f5f5;
+  }
+}

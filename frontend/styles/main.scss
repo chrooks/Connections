@@ -7,7 +7,18 @@
 @import "../src/components/ConnectionsGame/ControlButtonBar/ControlButtonBar";
 @import "../src/components/ConnectionsGame/SolvedConnection/SolvedConnection";
 @import "../src/components/Navbar/Navbar";
+@import "../src/components/Auth/Auth";
+@import "../src/components/LandingPage/LandingPage";
 
 .app {
   font-family: $font-primary;
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  font-size: 1.2rem;
+  color: #666;
 }

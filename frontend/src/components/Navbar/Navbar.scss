@@ -28,12 +28,12 @@
 
     .container {
       display: flex;
-      justify-content: center;
+      justify-content: flex-end;
 
       .nav-buttons {
-        width: 10%;
         display: flex;
-        justify-content: center;
+        gap: 0.5rem;
+        align-items: center;
         
         button {
           border: none;

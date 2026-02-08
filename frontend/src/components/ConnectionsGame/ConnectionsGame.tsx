@@ -6,7 +6,7 @@ import SolvedConnection from "./SolvedConnection/SolvedConnection";
 import useGameState from "../../hooks/useGameState";
 import useSubmitGuess from "../../hooks/useSubmitGuess";
 import { useSelectedWords } from "../../context/SelectedWordsContext";
-import { ANIMATION_DURATION, ANIMATION_DELAY, SWAP_DURATION, SWAP_STAGGER, FADE_DURATION, GAME_ID } from "../../config/gameConfig";
+import { ANIMATION_DURATION, ANIMATION_DELAY, SWAP_DURATION, SWAP_STAGGER, FADE_DURATION } from "../../config/gameConfig";
 import { AnimationPhase } from "./GameGrid/WordCard/WordCard";
 import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
@@ -24,7 +24,7 @@ const ConnectionsGame: React.FC = () => {
   const [solvedOrder, setSolvedOrder] = useState<number[]>([]);
   // Track the current grid word order (preserves order after swaps)
   const [gridWords, setGridWords] = useState<string[]>([]);
-  const { words, loading, error, connections } = useGameState(setMistakesLeft);
+  const { words, loading, error, connections, gameId } = useGameState(setMistakesLeft);
   const { selectedWords, clearWords } = useSelectedWords();
   // Animation phase: null = none, "nudge" = initial bump, "swap" = swapping positions, "fade" = fading out
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>(null);
@@ -83,7 +83,7 @@ const ConnectionsGame: React.FC = () => {
 
     // Start nudge animation and API call in parallel
     setAnimationPhase("nudge");
-    const resultPromise = submitGuess(GAME_ID, selectedWords);
+    const resultPromise = submitGuess(gameId!, selectedWords);
 
     // Wait for nudge animation to complete
     await new Promise(resolve => setTimeout(resolve, nudgeDuration));
