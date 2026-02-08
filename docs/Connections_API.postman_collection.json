@@ -1,0 +1,538 @@
+{
+	"info": {
+		"_postman_id": "connections-game-api-collection",
+		"name": "Connections Game API",
+		"description": "API collection for the Connections word puzzle game backend. This API allows you to create games, submit guesses, check game status, and manage game sessions.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "gameId",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Welcome Message",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": ["{{baseUrl}}"],
+							"path": [""]
+						},
+						"description": "Returns a welcome message confirming the API is running."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/",
+									"host": ["{{baseUrl}}"],
+									"path": [""]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"data\": {\n    \"message\": \"Welcome to the Connections game API!\"\n  }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Game Management",
+			"item": [
+				{
+					"name": "Generate New Game",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Extract gameId from response and save to collection variable",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.data && jsonData.data.gameId) {",
+									"    pm.collectionVariables.set('gameId', jsonData.data.gameId);",
+									"    console.log('Game ID saved:', jsonData.data.gameId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/connections/generate-grid",
+							"host": ["{{baseUrl}}"],
+							"path": ["connections", "generate-grid"]
+						},
+						"description": "Creates a new game session with a randomly generated grid of 16 words organized into 4 connection groups. Returns a unique game ID that should be used for subsequent API calls."
+					},
+					"response": [
+						{
+							"name": "Success - Game Created",
+							"originalRequest": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/connections/generate-grid",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "generate-grid"]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"body": "{\n  \"data\": {\n    \"gameId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n  }\n}"
+						},
+						{
+							"name": "Error - Failed to Generate",
+							"originalRequest": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/connections/generate-grid",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "generate-grid"]
+								}
+							},
+							"status": "Internal Server Error",
+							"code": 500,
+							"body": "{\n  \"error\": \"Failed to generate the game grid.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Game Status",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"gameId\": \"{{gameId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/connections/game-status",
+							"host": ["{{baseUrl}}"],
+							"path": ["connections", "game-status"]
+						},
+						"description": "Retrieves the current state of a game session including the grid, remaining mistakes, game status (IN_PROGRESS, WIN, LOSS), connections, and previous guesses."
+					},
+					"response": [
+						{
+							"name": "Success - Game Status",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"{{gameId}}\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/game-status",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "game-status"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"data\": {\n    \"gameId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n    \"grid\": [\"WORD1\", \"WORD2\", \"WORD3\", \"WORD4\", \"WORD5\", \"WORD6\", \"WORD7\", \"WORD8\", \"WORD9\", \"WORD10\", \"WORD11\", \"WORD12\", \"WORD13\", \"WORD14\", \"WORD15\", \"WORD16\"],\n    \"connections\": [\n      {\"relationship\": \"Category 1\", \"words\": [\"WORD1\", \"WORD2\", \"WORD3\", \"WORD4\"], \"guessed\": false},\n      {\"relationship\": \"Category 2\", \"words\": [\"WORD5\", \"WORD6\", \"WORD7\", \"WORD8\"], \"guessed\": false},\n      {\"relationship\": \"Category 3\", \"words\": [\"WORD9\", \"WORD10\", \"WORD11\", \"WORD12\"], \"guessed\": false},\n      {\"relationship\": \"Category 4\", \"words\": [\"WORD13\", \"WORD14\", \"WORD15\", \"WORD16\"], \"guessed\": false}\n    ],\n    \"mistakesLeft\": 4,\n    \"status\": \"IN_PROGRESS\",\n    \"previousGuesses\": []\n  }\n}"
+						},
+						{
+							"name": "Error - Invalid Game ID",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"invalid-id\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/game-status",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "game-status"]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"body": "{\n  \"error\": \"Invalid game ID.\"\n}"
+						},
+						{
+							"name": "Error - Missing Game ID",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/game-status",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "game-status"]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"body": "{\n  \"error\": \"Missing required fields: gameId\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Restart Game",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"gameId\": \"{{gameId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/connections/restart-game",
+							"host": ["{{baseUrl}}"],
+							"path": ["connections", "restart-game"]
+						},
+						"description": "Restarts an existing game session with a new grid and resets the mistakes counter. The game ID remains the same."
+					},
+					"response": [
+						{
+							"name": "Success - Game Restarted",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"{{gameId}}\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/restart-game",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "restart-game"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"data\": {\n    \"gameId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n    \"grid\": [\"NEWWORD1\", \"NEWWORD2\", \"NEWWORD3\", \"NEWWORD4\", \"NEWWORD5\", \"NEWWORD6\", \"NEWWORD7\", \"NEWWORD8\", \"NEWWORD9\", \"NEWWORD10\", \"NEWWORD11\", \"NEWWORD12\", \"NEWWORD13\", \"NEWWORD14\", \"NEWWORD15\", \"NEWWORD16\"],\n    \"connections\": [\n      {\"relationship\": \"New Category 1\", \"words\": [\"NEWWORD1\", \"NEWWORD2\", \"NEWWORD3\", \"NEWWORD4\"], \"guessed\": false},\n      {\"relationship\": \"New Category 2\", \"words\": [\"NEWWORD5\", \"NEWWORD6\", \"NEWWORD7\", \"NEWWORD8\"], \"guessed\": false},\n      {\"relationship\": \"New Category 3\", \"words\": [\"NEWWORD9\", \"NEWWORD10\", \"NEWWORD11\", \"NEWWORD12\"], \"guessed\": false},\n      {\"relationship\": \"New Category 4\", \"words\": [\"NEWWORD13\", \"NEWWORD14\", \"NEWWORD15\", \"NEWWORD16\"], \"guessed\": false}\n    ],\n    \"mistakesLeft\": 4,\n    \"status\": \"IN_PROGRESS\",\n    \"previousGuesses\": []\n  }\n}"
+						},
+						{
+							"name": "Error - Invalid Game ID",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"invalid-id\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/restart-game",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "restart-game"]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"body": "{\n  \"error\": \"Invalid game ID.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get All Games",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/connections/get-game-data",
+							"host": ["{{baseUrl}}"],
+							"path": ["connections", "get-game-data"]
+						},
+						"description": "Retrieves data for all game sessions stored in the database."
+					},
+					"response": [
+						{
+							"name": "Success - All Games",
+							"originalRequest": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/connections/get-game-data",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "get-game-data"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"data\": {\n    \"games\": [\n      {\n        \"gameId\": \"game-1\",\n        \"status\": \"WIN\",\n        \"mistakesLeft\": 2\n      },\n      {\n        \"gameId\": \"game-2\",\n        \"status\": \"IN_PROGRESS\",\n        \"mistakesLeft\": 4\n      }\n    ]\n  }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Gameplay",
+			"item": [
+				{
+					"name": "Submit Guess",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"gameId\": \"{{gameId}}\",\n  \"guess\": [\"WORD1\", \"WORD2\", \"WORD3\", \"WORD4\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/connections/submit-guess",
+							"host": ["{{baseUrl}}"],
+							"path": ["connections", "submit-guess"]
+						},
+						"description": "Submits a guess of 4 words that the player believes form a connection group. The guess must be an array of exactly 4 words from the current grid. Returns whether the guess was correct and updates the game state accordingly."
+					},
+					"response": [
+						{
+							"name": "Success - Correct Guess",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"{{gameId}}\",\n  \"guess\": [\"WORD1\", \"WORD2\", \"WORD3\", \"WORD4\"]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/submit-guess",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "submit-guess"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"data\": {\n    \"gameState\": {\n      \"mistakesLeft\": 4,\n      \"status\": \"IN_PROGRESS\",\n      \"guessedConnections\": [true, false, false, false]\n    },\n    \"isCorrect\": true,\n    \"isNewGuess\": true\n  }\n}"
+						},
+						{
+							"name": "Success - Incorrect Guess",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"{{gameId}}\",\n  \"guess\": [\"WORD1\", \"WORD2\", \"WORD5\", \"WORD6\"]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/submit-guess",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "submit-guess"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"data\": {\n    \"gameState\": {\n      \"mistakesLeft\": 3,\n      \"status\": \"IN_PROGRESS\",\n      \"guessedConnections\": [false, false, false, false]\n    },\n    \"isCorrect\": false,\n    \"isNewGuess\": true\n  }\n}"
+						},
+						{
+							"name": "Success - Duplicate Guess",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"{{gameId}}\",\n  \"guess\": [\"WORD1\", \"WORD2\", \"WORD5\", \"WORD6\"]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/submit-guess",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "submit-guess"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"data\": {\n    \"gameState\": {\n      \"mistakesLeft\": 3,\n      \"status\": \"IN_PROGRESS\",\n      \"guessedConnections\": [false, false, false, false]\n    },\n    \"isCorrect\": false,\n    \"isNewGuess\": false\n  }\n}"
+						},
+						{
+							"name": "Success - Game Won",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"{{gameId}}\",\n  \"guess\": [\"WORD13\", \"WORD14\", \"WORD15\", \"WORD16\"]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/submit-guess",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "submit-guess"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"data\": {\n    \"gameState\": {\n      \"mistakesLeft\": 4,\n      \"status\": \"WIN\",\n      \"guessedConnections\": [true, true, true, true]\n    },\n    \"isCorrect\": true,\n    \"isNewGuess\": true\n  }\n}"
+						},
+						{
+							"name": "Success - Game Lost",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"{{gameId}}\",\n  \"guess\": [\"WORD1\", \"WORD5\", \"WORD9\", \"WORD13\"]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/submit-guess",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "submit-guess"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"data\": {\n    \"gameState\": {\n      \"mistakesLeft\": 0,\n      \"status\": \"LOSS\",\n      \"guessedConnections\": [false, false, false, false]\n    },\n    \"isCorrect\": false,\n    \"isNewGuess\": true\n  }\n}"
+						},
+						{
+							"name": "Error - Invalid Game ID",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"invalid-id\",\n  \"guess\": [\"WORD1\", \"WORD2\", \"WORD3\", \"WORD4\"]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/submit-guess",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "submit-guess"]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"body": "{\n  \"error\": \"Invalid game ID.\"\n}"
+						},
+						{
+							"name": "Error - Invalid Guess Format",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"{{gameId}}\",\n  \"guess\": [\"WORD1\", \"WORD2\", \"WORD3\"]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/submit-guess",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "submit-guess"]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"body": "{\n  \"error\": \"Invalid guess format. A guess should be a list of four words.\"\n}"
+						},
+						{
+							"name": "Error - Missing Fields",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"gameId\": \"{{gameId}}\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/connections/submit-guess",
+									"host": ["{{baseUrl}}"],
+									"path": ["connections", "submit-guess"]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"body": "{\n  \"error\": \"Missing required fields: guess\"\n}"
+						}
+					]
+				}
+			]
+		}
+	]
+}
