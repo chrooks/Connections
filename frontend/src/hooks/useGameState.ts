@@ -1,18 +1,22 @@
 import { useState, useEffect } from "react";
+import { BASE_URL, GAME_ID } from "../config/gameConfig";
 
 /**
  * Custom hook to manage the game grid state.
  * Fetches the game grid data from the server and handles loading and error states.
  *
- * @returns {Object} An object containing the words array, loading state, and error state.
+ * @param {Function} setMistakesLeft - A function to update the mistakesLeft state.
+ * @returns {Object} An object containing the words array, loading state, error state, connections, and shuffleWords function.
  */
-const useGameGrid = () => {
+const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
   // State to store the words for the game grid
   const [words, setWords] = useState<string[]>([]);
   // State to indicate if the data is currently being loaded
   const [loading, setLoading] = useState<boolean>(true);
   // State to store any error message that occurs during data fetching
   const [error, setError] = useState<string | null>(null);
+  // State to store the connections
+  const [connections, setConnections] = useState<any[]>([]);
 
   useEffect(() => {
     /**
@@ -21,21 +25,18 @@ const useGameGrid = () => {
      * Updates the error state if there is an error during the fetch.
      * Sets the loading state to false once the fetch is complete.
      */
-    const fetchGameGrid = async () => {
+    const fetchGameState = async () => {
       try {
         // Send a POST request to the server to fetch the game grid data
-        const response = await fetch(
-          "http://localhost:5000/connections/game-status",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              gameId: "64cbc900-bd56-4cfa-9ece-eaaae6f2d03f",
-            }),
-          }
-        );
+        const response = await fetch(`${BASE_URL}/game-status`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            gameId: GAME_ID,
+          }),
+        });
         // Parse the JSON response from the server
         const jsonResponse = await response.json();
         const data = jsonResponse.data;
@@ -43,6 +44,10 @@ const useGameGrid = () => {
         if (response.ok) {
           // If the response is successful, update the words state with the fetched data
           setWords(data.grid);
+          // Update the mistakesLeft state with the fetched data
+          setMistakesLeft(data.mistakesLeft);
+          // Update the connections state with the fetched data
+          setConnections(data.connections);
         } else {
           // If the response is not successful, update the error state with the error message
           setError(data.error || "Failed to fetch game grid");
@@ -56,8 +61,8 @@ const useGameGrid = () => {
       }
     };
 
-    fetchGameGrid();
-  }, []);
+    fetchGameState();
+  }, [setMistakesLeft]);
 
   /**
    * Shuffles the words in the game grid.
@@ -82,7 +87,7 @@ const useGameGrid = () => {
     });
   };
 
-  return { words, loading, error, shuffleWords };
+  return { words, loading, error, connections, shuffleWords };
 };
 
-export default useGameGrid;
+export default useGameState;

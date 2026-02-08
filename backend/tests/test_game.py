@@ -8,7 +8,7 @@ from backend.src.game.game import (
     get_all_games_data,
     get_game_state,
     process_guess,
-    restart_game,
+    restart,
     validate_id,
 )
 from backend.src.models.models import ConnectionsGame
@@ -209,14 +209,14 @@ class TestGame(unittest.TestCase):
                 return_value=(["word1", "word2"], {("word1", "word2"): "relationship"}),
             ):
                 with patch("backend.src.game.reset_game", return_value=True):
-                    self.assertTrue(restart_game(1))  # Assert the game restarts successfully
+                    self.assertTrue(restart(1))  # Assert the game restarts successfully
 
     def test_restart_game_not_exists(self):
         # This test ensures that attempting to restart a non-existent game raises a ValueError.
         with self.app.app_context():
             with patch("backend.src.game.check_game_exists", return_value=False):
                 with self.assertRaises(ValueError) as context:
-                    restart_game(999)
+                    restart(999)
                 self.assertEqual(
                     str(context.exception), "No game found with the provided ID: 999"
                 )  # Check the error message

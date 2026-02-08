@@ -5,4 +5,10 @@
   background-color: $unselected-button;
   display: block;
   margin: 0.1rem 0.25rem;
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+
+  &.shrink {
+    transform: scale(1.5);
+    opacity: 0;
+  }
 }

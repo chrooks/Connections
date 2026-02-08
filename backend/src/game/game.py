@@ -93,25 +93,26 @@ def generate_game_grid():
     return grid, connections
 
 
-def process_guess(game_id: str, guess: "list[str]") -> "tuple[dict, bool, bool, bool]":
+def process_guess(game_id: str, guess: "list[str]") -> "tuple[dict, bool, bool, bool, str]":
     """
     Validates the guess and updates the game state by calling the respective functions from dal.py.
     Returns the updated game game state, a boolean confirming whether the guess is valid, whether the guess was correct,
-    and whether the guess was new.
+    whether the guess was new, and an error message if the guess is invalid.
     :param game_id: The ID of the game session where the guess is being made.
     :param guess: A list of four words that represent the player's guess.
     :return: A tuple containing the updated game state,
                                 a boolean indicating if the guess was valid,
                                 a boolean indicating if the guess was correct,
-                                and a boolean indicating if the guess was new.
+                                a boolean indicating if the guess was new,
+                                and an error message if the guess is invalid.
     """
-    is_correct, is_valid, is_new = check_guess(game_id, guess)
+    is_correct, is_valid, is_new, error_message = check_guess(game_id, guess)
     if not is_valid:
-        return None, is_valid, False, is_new
+        return None, is_valid, False, is_new, error_message
 
     update_game_state(game_id, guess, is_correct)
     game_state = get_game_from_db(game_id)
-    return game_state, is_valid, is_correct, is_new
+    return game_state.to_state(), is_valid, is_correct, is_new, ""
 
 
 def create_new_game() -> "ConnectionsGame":

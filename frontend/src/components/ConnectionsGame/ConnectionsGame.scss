@@ -9,4 +9,12 @@
     color: $black;
     margin: 0.8rem 0;
   }
+
+  // Container for solved connection rows
+  .solved-connections-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 39.5rem; // Match approximate grid width (4 cards * 9.875rem)
+  }
 }

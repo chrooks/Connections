@@ -1,0 +1,47 @@
+.solved-connection {
+  // Container styling matching the game grid width
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+  min-height: 5rem;
+
+  // Entrance animation - grows quickly then shrinks back to normal
+  animation: pop-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  &__category {
+    font-weight: 700;
+    font-size: 1rem;
+    text-transform: uppercase;
+    color: #000;
+  }
+
+  &__words {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    color: #000;
+    margin-top: 0.25rem;
+  }
+}
+
+// Pop-bounce animation - starts small, grows past target size, then settles
+@keyframes pop-bounce {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scaleY(1.15);
+    opacity: 1;
+  }
+  75% {
+    transform: scaleY(0.95);
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}

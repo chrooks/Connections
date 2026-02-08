@@ -22,9 +22,9 @@ from ...game.game import (
     create_new_game,
     get_game_state,
     get_all_games_data,
-    restart_game,
     process_guess,
     validate_id,
+    restart_game,
 )
 from ...services.utils import parse_and_validate_request, create_response
 
@@ -78,12 +78,20 @@ def submit_guess():
         )
 
     # Process the guess and update the game state
-    game_state, is_valid, is_correct, is_new = process_guess(game_id, guess)
+    game_state, is_valid, is_correct, is_new, error_message = process_guess(game_id, guess)
     if not is_valid:
-        return create_response(error="Invalid guess.", status_code=400)
+        return create_response(error="Invalid guess: " + error_message, status_code=400)
 
-    game_state.update({"isCorrect": is_correct, "isNewGuess": is_new})
-    return create_response(data=game_state)
+    response_data = {
+        "gameState": {
+            "mistakesLeft": game_state["mistakesLeft"],
+            "status": game_state["status"],
+            "guessedConnections": [connection["guessed"] for connection in game_state["connections"]],
+        },
+        "isCorrect": is_correct,
+        "isNewGuess": is_new,
+    }
+    return create_response(data=response_data)
 
 
 @api_bp.route("/game-status", methods=["POST"])
@@ -109,7 +117,7 @@ def game_status():
 
 
 @api_bp.route("/restart-game", methods=["POST"])
-def restart_game():
+def restart():
     """
     Restarts the game with a new grid, resetting mistakes left.
     Requires JSON payload with gameId.

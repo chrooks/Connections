@@ -1,5 +1,6 @@
 .game-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, 1fr);
+  // Rows auto-size based on content - no fixed row count
+  grid-auto-rows: auto;
 }

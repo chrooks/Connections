@@ -12,15 +12,50 @@
   background-color: $unselected-card;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.25s, color 0.25s, transform $animation-duration ease;
+  transition: background-color 0.25s, color 0.25s;
 
   &.selected {
     background-color: $selected-card;
     color: $white;
   }
 
-  &.slide-up {
+  // Initial nudge animation when submitting
+  &.nudge {
+    animation: nudge-up $animation-duration ease;
+  }
+
+  // Swapping position animation (transform is set via inline style)
+  &.swapping {
+    transition: transform 0.3s ease-in-out;
+    z-index: 10; // Ensure swapping cards appear above others
+  }
+
+  // Fade out animation after cards reach target row
+  &.fading {
+    animation: fade-out 0.2s ease-out forwards;
+  }
+}
+
+// Nudge animation - small bump up and back
+@keyframes nudge-up {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
     transform: translateY(-0.75rem);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+// Fade out animation
+@keyframes fade-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }
 

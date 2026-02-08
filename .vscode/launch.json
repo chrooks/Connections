@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "Python: PyTest",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "module": "pytest",
       "args": ["${workspaceFolder}/backend/tests/"],
@@ -11,11 +11,12 @@
       "justMyCode": true
     },
     {
-      "name": "Start Backend",
-      "type": "python",
+      "name": "Start Backend Local Server",
+      "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/backend/venv/bin/flask",
+      "module": "flask",
       "args": ["run"],
+      "python": "${workspaceFolder}/backend/.venv/bin/python",
       "env": {
         "FLASK_APP": "app.py",
         "FLASK_ENV": "development",
@@ -25,10 +26,11 @@
       "cwd": "${workspaceFolder}/backend/src/"
     },
     {
-      "name": "Start Frontend",
+      "name": "Start Frontend Local Serve",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceFolder}/frontend/src/index.js",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
       "cwd": "${workspaceFolder}/frontend"
     }
   ]

@@ -100,20 +100,24 @@ def update_game_state(game_id: str, guess: "list[str]", is_correct: bool):
 
     # Check if the current guess has already been made
     if guess in game.previous_guesses:
+        print(f"Guess {guess} has already been made")
         # If the guess has already been made, do not modify the game state
         return
 
     # Add the new guess to the list of previous guesses
     game.previous_guesses.append(guess)
+    print(f"Added guess {guess} to previous guesses")
 
     # If the guess is incorrect, decrement the number of mistakes left
     if not is_correct:
         game.mistakes_left -= 1
+        print(f"Decremented mistakes left to {game.mistakes_left}")
     else:
         # If the guess is correct, update the guessed status of the corresponding connection
         for connection in game.connections:
             if set(guess) == set(connection["words"]):
                 connection["guessed"] = True
+                print(f"Set connection {connection['words']} to guessed ({connection['guessed']})")
                 break
 
     # Check if the game is over after the update
@@ -137,8 +141,10 @@ def check_game_over(game: "ConnectionsGame"):
     """
     if game.mistakes_left <= 0:
         game.status = GameStatus.LOSS
+        print(f"Game Lost")
     elif all_conditions_for_win_met(game):
         game.status = GameStatus.WIN
+        print(f"Game Won with {game.mistakes_left} mistakes left")
     else:
         game.status = GameStatus.IN_PROGRESS
     db.session.commit()
@@ -155,16 +161,17 @@ def all_conditions_for_win_met(game: "ConnectionsGame") -> bool:
     return all(connection["guessed"] for connection in game.connections)
 
 
-def check_guess(game_id: str, guess: "list[str]") -> "tuple[bool, bool]":
+def check_guess(game_id: str, guess: "list[str]") -> "tuple[bool, bool, bool, str]":
     """
     Determines if the guess is correct and valid based on the game's relationship definitions and rules.
 
     :param game_id: The ID of the game session where the guess is being made.
     :param guess: A list of four words that represent the player's guess.
-    :return: A tuple (is_correct, is_valid, is_new) where:
+    :return: A tuple (is_correct, is_valid, is_new, error_message) where:
         - is_correct is a boolean indicating if the guess is correct.
         - is_valid is a boolean indicating if the guess is valid.
         - is_new is a boolean indicating if the guess is new.
+        - error_message is a string indicating why the guess is invalid, or an empty string if valid.
     """
 
     game = get_game_from_db(game_id)
@@ -174,17 +181,27 @@ def check_guess(game_id: str, guess: "list[str]") -> "tuple[bool, bool]":
 
     # If the game is not in progress, return False for both is_correct and is_valid
     if game.status != GameStatus.IN_PROGRESS:
-        return False, False, False
+        return False, False, False, "Game is not in progress."
 
     # Check if the guess is valid
-    is_valid = (
-        len(guess) == 4
-        and all(word in game.grid for word in guess)
-        and len(set(guess)) == 4  # Ensure no duplicate words in the guess
-    )
+    if len(guess) != 4:
+        return False, False, False, "Guess must contain exactly four words."
+    if not all(word in game.grid for word in guess):
+        return False, False, False, "All words in the guess must be in the game grid."
+    if len(set(guess)) != 4:
+        return False, False, False, "Guess must not contain duplicate words."
+
+    is_valid = True
 
     # Check if the guess is new
-    is_new = guess not in game.previous_guesses
+    is_new = True
+    guess_set = set(guess)
+    for previous_guess in game.previous_guesses:
+        previous_guess_set = set(previous_guess)
+        if guess_set == previous_guess_set:
+            print(f"Guess {guess_set} matches previous guess {previous_guess_set}")
+            is_new = False
+            break
 
     # Check if the guess is correct
     is_correct = False
@@ -193,9 +210,11 @@ def check_guess(game_id: str, guess: "list[str]") -> "tuple[bool, bool]":
         for connection in connections:
             if set(guess) == set(connection["words"]):
                 is_correct = True
+                print(f"Guess {guess} satistfies connection \"{connection['relationship']}\"")
                 break
 
-    return is_correct, is_valid, is_new
+    print(f"Guess: {guess}, Is New: {is_new}, Is Correct: {is_correct}, Is Valid: {is_valid}")
+    return is_correct, is_valid, is_new, ""
 
 
 def reset_game(game_id: str, grid: "list[str]", connections: "list[dict]") -> "ConnectionsGame":
