@@ -161,11 +161,11 @@ const ConnectionsGame: React.FC = () => {
   };
 
   return (
-    <div className="game container">
+    <div id="connections-game-container" className="game container">
       <ToastContainer />
-      <span className="game-instructions"> Create four groups of four!</span>
+      <span id="game-instructions" className="game-instructions"> Create four groups of four!</span>
       {/* Render solved connections above the grid */}
-      <div className="solved-connections-container">
+      <div id="solved-connections-container" className="solved-connections-container">
         {solvedConnections.map((conn) => {
           // Find original index to determine color
           const originalIndex = (connections as Connection[]).findIndex(c => c.relationship === conn.relationship);

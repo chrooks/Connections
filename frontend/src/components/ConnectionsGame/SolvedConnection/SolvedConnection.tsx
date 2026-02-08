@@ -18,15 +18,21 @@ const SolvedConnection: React.FC<SolvedConnectionProps> = ({ category, words, in
   // Get background color based on difficulty index, defaulting to yellow if out of range
   const backgroundColor = DIFFICULTY_COLORS[index] || DIFFICULTY_COLORS[0];
 
+  // Generate a unique ID for this solved connection based on category
+  const connectionId = `solved-connection-${category.toLowerCase().replace(/\s+/g, '-')}`;
+  const categoryId = `solved-category-${index}`;
+  const wordsId = `solved-words-${index}`;
+
   return (
     <div
+      id={connectionId}
       className="solved-connection"
       style={{ backgroundColor }}
     >
       {/* Category name displayed prominently */}
-      <span className="solved-connection__category">{category}</span>
+      <span id={categoryId} className="solved-connection__category">{category}</span>
       {/* Words displayed as comma-separated list */}
-      <span className="solved-connection__words">{words.join(", ")}</span>
+      <span id={wordsId} className="solved-connection__words">{words.join(", ")}</span>
     </div>
   );
 };

@@ -87,15 +87,15 @@ const GameGrid: React.FC<GameGridProps> = ({ words, loading, error, animationPha
   }, [animationPhase, words, selectedWords]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div id="game-grid-loading">Loading...</div>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div id="game-grid-error">Error: {error}</div>;
   }
 
   return (
-    <div className="game-grid">
+    <div id="game-grid" className="game-grid">
       {words.map((word, index) => (
         <WordCard
           key={word}

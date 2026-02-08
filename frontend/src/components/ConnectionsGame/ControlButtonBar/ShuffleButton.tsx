@@ -9,7 +9,7 @@ interface ShuffleButtonProps {
 const ShuffleButton: React.FC<ShuffleButtonProps> = ({ onClick }) => {
   // Render a button element with an onClick event handler
   return (
-    <button className="shuffle-button" onClick={onClick}>
+    <button id="shuffle-button" className="shuffle-button" onClick={onClick}>
       Shuffle
     </button>
   );

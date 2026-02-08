@@ -24,13 +24,13 @@ const MistakeTracker: React.FC<MistakeTrackerProps> = ({ mistakesLeft }) => {
   }, [mistakesLeft]); // Only re-run the effect when mistakesLeft changes
 
   return (
-    <div className="mistake-tracker">
-      <span className="mistake-tracker-label">
+    <div id="mistake-tracker" className="mistake-tracker">
+      <span id="mistake-tracker-label" className="mistake-tracker-label">
         Mistakes remaining:
       </span>
-      <div className="mistake-tracker-bubbles">
+      <div id="mistake-tracker-bubbles" className="mistake-tracker-bubbles">
         {Array.from({ length: mistakesLeft }).map((_, index) => (
-          <MistakeBubble key={index} />
+          <MistakeBubble key={index} index={index} />
         ))}
       </div>
     </div>

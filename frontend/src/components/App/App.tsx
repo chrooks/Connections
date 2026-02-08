@@ -21,10 +21,10 @@ const App: React.FC = () => {
   // Show loading state while checking authentication
   if (loading) {
     return (
-      <div className="app">
+      <div id="app-container" className="app">
         <Navbar showLowerNav={false} />
-        <div className="loading-container">
-          <p>Loading...</p>
+        <div id="loading-container" className="loading-container">
+          <p id="loading-text">Loading...</p>
         </div>
       </div>
     );
@@ -32,7 +32,7 @@ const App: React.FC = () => {
 
   return (
     <SelectedWordsProvider>
-      <div className="app">
+      <div id="app-container" className="app">
         <Navbar showLowerNav={!showLandingPage} />
         {showLandingPage ? (
           <LandingPage onPlayAsGuest={handlePlayAsGuest} />

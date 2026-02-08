@@ -11,7 +11,7 @@ interface ControlButtonBarProps {
 
 const ControlButtonBar: React.FC<ControlButtonBarProps> = (props) => {
   return (
-    <div className="button-bar">
+    <div id="control-button-bar" className="button-bar">
       <ShuffleButton onClick={props.onShuffle} />
       <DeselectButton onClick={props.onDeselect} />
       <SubmitButton onClick={props.onSubmit} />

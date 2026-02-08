@@ -30,8 +30,9 @@ const UserMenu: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div className="user-menu" ref={menuRef}>
+    <div id="user-menu" className="user-menu" ref={menuRef}>
       <button
+        id="user-menu-button"
         className="user-menu-icon"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="User menu"
@@ -40,9 +41,10 @@ const UserMenu: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="user-menu-dropdown">
-          <div className="user-menu-email">{user.email}</div>
+        <div id="user-menu-dropdown" className="user-menu-dropdown">
+          <div id="user-menu-email" className="user-menu-email">{user.email}</div>
           <button
+            id="sign-out-button"
             onClick={() => {
               signOut();
               setIsOpen(false);

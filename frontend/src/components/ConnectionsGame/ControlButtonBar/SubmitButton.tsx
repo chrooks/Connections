@@ -12,7 +12,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ onClick }) => {
   const isReadyToSubmit = selectedWords.length === 4;
 
   return (
-    <button className={`submit-button ${isReadyToSubmit ? "" : "button-unprimed"}`} onClick={onClick}>
+    <button id="submit-button" className={`submit-button ${isReadyToSubmit ? "" : "button-unprimed"}`} onClick={onClick}>
       Submit
     </button>
   );

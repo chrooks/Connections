@@ -8,7 +8,7 @@ const HelpButton: React.FC = () => {
   };
 
   return (
-    <button onClick={handleHelpClick} className="help-button">
+    <button id="help-button" onClick={handleHelpClick} className="help-button">
       <FontAwesomeIcon icon={faQuestionCircle} size="lg"  />
     </button>
   );

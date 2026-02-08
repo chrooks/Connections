@@ -107,21 +107,21 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       className="auth-modal"
       overlayClassName="auth-modal-overlay"
     >
-      <div className="auth-modal-content">
-        <button onClick={handleClose} className="auth-close-btn" aria-label="Close">
+      <div id="auth-modal-content" className="auth-modal-content">
+        <button id="auth-modal-close-button" onClick={handleClose} className="auth-close-btn" aria-label="Close">
           &times;
         </button>
 
-        <h2>{isSignUp ? "Create Account" : "Sign In"}</h2>
+        <h2 id="auth-modal-title">{isSignUp ? "Create Account" : "Sign In"}</h2>
 
         {/* Error message display */}
-        {error && <div className="auth-error">{error}</div>}
+        {error && <div id="auth-error-message" className="auth-error">{error}</div>}
 
         {/* Success message display */}
-        {message && <div className="auth-message">{message}</div>}
+        {message && <div id="auth-success-message" className="auth-message">{message}</div>}
 
         {/* Email/Password form */}
-        <form onSubmit={handleSubmit}>
+        <form id="auth-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
@@ -165,15 +165,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          <button type="submit" disabled={loading} className="auth-submit-btn">
+          <button id="auth-submit-button" type="submit" disabled={loading} className="auth-submit-btn">
             {loading ? "Loading..." : isSignUp ? "Sign Up" : "Sign In"}
           </button>
         </form>
 
         {/* Toggle between sign in and sign up */}
-        <p className="auth-toggle">
+        <p id="auth-toggle-text" className="auth-toggle">
           {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-          <button type="button" onClick={toggleMode} className="auth-toggle-btn">
+          <button id="auth-toggle-mode-button" type="button" onClick={toggleMode} className="auth-toggle-btn">
             {isSignUp ? "Sign In" : "Sign Up"}
           </button>
         </p>

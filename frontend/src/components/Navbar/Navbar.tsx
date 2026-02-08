@@ -14,19 +14,19 @@ const Navbar: React.FC<NavbarProps> = ({ showLowerNav = true }) => {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   return (
-    <nav className="navbar">
-      <div className="navbar-upper">
+    <nav id="navbar" className="navbar">
+      <div id="navbar-upper" className="navbar-upper">
         <div className="container">
-            <span className="connections-logo">Connections</span>
-            <span className="version-logo">Chrooked Version</span>
+            <span id="connections-logo" className="connections-logo">Connections</span>
+            <span id="version-logo" className="version-logo">Chrooked Version</span>
         </div>
       </div>
 
       {/* Only show lower navbar if showLowerNav is true */}
       {showLowerNav && (
-        <div className="navbar-lower">
+        <div id="navbar-lower" className="navbar-lower">
           <div className="container">
-            <div className="nav-buttons">
+            <div id="nav-buttons" className="nav-buttons">
               <SettingsButton />
               <HelpButton />
 

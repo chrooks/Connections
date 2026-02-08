@@ -105,8 +105,12 @@ const WordCard: React.FC<WordCardProps> = ({ word, gridIndex: _gridIndex, animat
     style.transform = `translate(${swapOffset.x}rem, ${swapOffset.y}rem)`;
   }
 
+  // Generate a unique ID for the word card based on the word content
+  const wordId = `word-card-${word.toLowerCase().replace(/\s+/g, '-')}`;
+
   return (
     <div
+      id={wordId}
       className={classNames}
       onClick={handleClick}
       style={style}

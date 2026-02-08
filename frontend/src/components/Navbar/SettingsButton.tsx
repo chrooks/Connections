@@ -16,7 +16,7 @@ const SettingsButton: React.FC = () => {
 
   return (
     <>
-      <button onClick={handleSettingsClick} className="settings-button">
+      <button id="settings-button" onClick={handleSettingsClick} className="settings-button">
         <FontAwesomeIcon icon={faGear} size="lg" />
       </button>
       <Modal
@@ -26,10 +26,10 @@ const SettingsButton: React.FC = () => {
         className="modal"
         overlayClassName="modal-overlay"
       >
-        <div className="modal-content">
-          <span className="close-button" onClick={closeModal}>&times;</span>
-          <h2>Settings</h2>
-          <p>Settings content goes here...</p>
+        <div id="settings-modal-content" className="modal-content">
+          <span id="settings-modal-close-button" className="close-button" onClick={closeModal}>&times;</span>
+          <h2 id="settings-modal-title">Settings</h2>
+          <p id="settings-modal-placeholder">Settings content goes here...</p>
         </div>
       </Modal>
     </>

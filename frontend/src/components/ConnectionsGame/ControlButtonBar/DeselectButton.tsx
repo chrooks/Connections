@@ -14,7 +14,8 @@ const DeselectButton: React.FC<DeselectButtonProps> = ({ onClick }) => {
   // Render a button element with an onClick event handler
   return (
     <button
-      className={`deselect-button ${isReadyToDeselect ? "" : "button-unprimed"} 
+      id="deselect-button"
+      className={`deselect-button ${isReadyToDeselect ? "" : "button-unprimed"}
        `}
       onClick={() => {
         if (isReadyToDeselect) {

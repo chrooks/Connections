@@ -38,9 +38,7 @@ pip install -r backend/requirements.txt
 
 ```bash
 cd backend
-export FLASK_APP=app.py  # On Windows use `set FLASK_APP=app.py`
-export FLASK_ENV=development  # On Windows use `set FLASK_ENV=development`
-flask run
+python -m src.app
 ```
 
 4. **Install and run the React frontend**
