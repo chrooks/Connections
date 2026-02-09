@@ -166,14 +166,14 @@
   cursor: pointer;
   padding: 0.5rem;
   font-size: 1.25rem;
-  color: #5a594e;
+  color: #000;
   transition: color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
 
   &:hover {
-    color: #000;
+    color: #333;
   }
 }
 
