@@ -7,14 +7,15 @@ interface ControlButtonBarProps {
   onShuffle: () => void;
   onDeselect: () => void;
   onSubmit: () => void;
+  isVisible?: boolean;  // Control fade-out animation when game ends
 }
 
-const ControlButtonBar: React.FC<ControlButtonBarProps> = (props) => {
+const ControlButtonBar: React.FC<ControlButtonBarProps> = ({ onShuffle, onDeselect, onSubmit, isVisible = true }) => {
   return (
-    <div id="control-button-bar" className="button-bar">
-      <ShuffleButton onClick={props.onShuffle} />
-      <DeselectButton onClick={props.onDeselect} />
-      <SubmitButton onClick={props.onSubmit} />
+    <div id="control-button-bar" className={`button-bar ${!isVisible ? 'fade-out' : ''}`}>
+      <ShuffleButton onClick={onShuffle} />
+      <DeselectButton onClick={onDeselect} />
+      <SubmitButton onClick={onSubmit} />
     </div>
   );
 };

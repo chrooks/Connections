@@ -52,6 +52,7 @@ const useSubmitGuess = (
       } else if (result.data) {
         const responseData = result.data;
         console.log("Response Data: ", responseData);
+        console.log("Setting mistakesLeft to:", responseData.gameState.mistakesLeft);
 
         // Update mistakes immediately
         setMistakesLeft(responseData.gameState.mistakesLeft);

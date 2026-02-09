@@ -1,0 +1,38 @@
+// View Results button that appears after game completion
+
+.view-results-button {
+  // Fade in animation when button appears
+  animation: fadeIn 300ms ease-in forwards;
+
+  // Styling to match existing button patterns
+  background-color: #000;
+  color: white;
+  border: none;
+  border-radius: 2rem;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #333;
+  }
+
+  &:active {
+    background-color: #555;
+  }
+}
+
+// Fade in keyframe animation
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

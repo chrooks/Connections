@@ -4,3 +4,4 @@ backend/src/__pycache__/
 backend/tests/__pycache__/
 __pycache__
 backend/connectionsdb.db
+.env

@@ -6,22 +6,24 @@ interface MistakeTrackerProps {
 }
 
 const MistakeTracker: React.FC<MistakeTrackerProps> = ({ mistakesLeft }) => {
+  // Always render 4 bubbles, track which ones are shrinking
+  const maxMistakes = 4;
   const [prevMistakesLeft, setPrevMistakesLeft] = useState(mistakesLeft);
+  const [shrinkingIndex, setShrinkingIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    // Check if the number of mistakes left has decreased
+    // When mistakes decrease, trigger shrink animation on the bubble that should disappear
     if (mistakesLeft < prevMistakesLeft) {
-      // Select all elements with the class "mistake-bubble"
-      const bubbles = document.querySelectorAll(".mistake-bubble");
-      // If there are any mistake bubbles
-      if (bubbles.length > 0) {
-        // Add the "shrink" class to the last bubble to trigger the shrink animation
-        bubbles[bubbles.length - 1].classList.add("shrink");
-      }
+      // The bubble at index mistakesLeft should shrink (the last visible one)
+      setShrinkingIndex(mistakesLeft);
+
+      // After animation completes, clear shrinking state
+      setTimeout(() => {
+        setShrinkingIndex(null);
+      }, 300); // Match animation duration
     }
-    // Update the previous mistakes left state to the current mistakes left
     setPrevMistakesLeft(mistakesLeft);
-  }, [mistakesLeft]); // Only re-run the effect when mistakesLeft changes
+  }, [mistakesLeft, prevMistakesLeft]);
 
   return (
     <div id="mistake-tracker" className="mistake-tracker">
@@ -29,9 +31,19 @@ const MistakeTracker: React.FC<MistakeTrackerProps> = ({ mistakesLeft }) => {
         Mistakes remaining:
       </span>
       <div id="mistake-tracker-bubbles" className="mistake-tracker-bubbles">
-        {Array.from({ length: mistakesLeft }).map((_, index) => (
-          <MistakeBubble key={index} index={index} />
-        ))}
+        {Array.from({ length: maxMistakes }).map((_, index) => {
+          // Bubble is visible if index is less than mistakesLeft or if it's currently shrinking
+          const isVisible = index < mistakesLeft || index === shrinkingIndex;
+          const isShrinking = index === shrinkingIndex;
+          return (
+            <MistakeBubble
+              key={index}
+              index={index}
+              isVisible={isVisible}
+              isShrinking={isShrinking}
+            />
+          );
+        })}
       </div>
     </div>
   );

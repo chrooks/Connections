@@ -23,6 +23,8 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
   const [connections, setConnections] = useState<any[]>([]);
   // State to store the current game ID
   const [gameId, setGameId] = useState<string | null>(currentGameId);
+  // State to store the puzzle number for sharing results
+  const [puzzleNumber, setPuzzleNumber] = useState<number | null>(null);
 
   useEffect(() => {
     /**
@@ -53,6 +55,7 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
         setWords(data.grid);
         setMistakesLeft(data.mistakesLeft);
         setConnections(data.connections);
+        setPuzzleNumber(data.puzzleNumber);
         return true;
       }
       return false;
@@ -115,7 +118,7 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
     });
   };
 
-  return { words, loading, error, connections, shuffleWords, gameId };
+  return { words, loading, error, connections, shuffleWords, gameId, puzzleNumber };
 };
 
 export default useGameState;

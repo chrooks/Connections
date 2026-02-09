@@ -49,6 +49,7 @@ class ConnectionsGame(db.Model):
     previous_guesses: List[str] = db.Column(
         MutableList.as_mutable(db.JSON), default=list
     )  # List of previous guesses made during the game
+    puzzle_number: int = db.Column(db.Integer, nullable=True)  # Sequential puzzle number for sharing results
 
     @staticmethod
     def make_connections_mutable(connections):
@@ -80,6 +81,7 @@ class ConnectionsGame(db.Model):
             "mistakesLeft": self.mistakes_left,
             "status": self.status.value,
             "previousGuesses": self.previous_guesses,
+            "puzzleNumber": self.puzzle_number,
         }
 
     def __repr__(self):

@@ -17,6 +17,7 @@ Functions:
 
 import uuid
 import json
+from sqlalchemy import func
 from ..models.models import db, ConnectionsGame, GameStatus
 
 
@@ -24,7 +25,7 @@ def add_new_game(grid: "list[str]", connections: "list[dict]") -> str:
     """
     Adds a new game to the database with the specified grid and connections.
     Initializes the game with 4 mistakes allowed, an empty list of previous guesses,
-    and sets the game status to IN_PROGRESS.
+    and sets the game status to IN_PROGRESS. Assigns a sequential puzzle number.
 
     Args:
         grid (list): A list of words representing the game grid.
@@ -33,6 +34,10 @@ def add_new_game(grid: "list[str]", connections: "list[dict]") -> str:
     Returns:
         str: The unique identifier of the newly created game.
     """
+    # Get max puzzle number and increment for new game
+    max_puzzle = db.session.query(func.max(ConnectionsGame.puzzle_number)).scalar()
+    puzzle_number = (max_puzzle or 0) + 1
+
     # Coerce connections into MutableDict
     mutable_connections = ConnectionsGame.make_connections_mutable(connections)
     new_game = ConnectionsGame(
@@ -42,6 +47,7 @@ def add_new_game(grid: "list[str]", connections: "list[dict]") -> str:
         mistakes_left=4,
         previous_guesses=[],  # Serialize an empty list to JSON string
         status=GameStatus.IN_PROGRESS,
+        puzzle_number=puzzle_number,  # Assign sequential puzzle number
     )
     db.session.add(new_game)
     db.session.commit()
@@ -98,11 +104,13 @@ def update_game_state(game_id: str, guess: "list[str]", is_correct: bool):
     """
     game = get_game_from_db(game_id)
 
-    # Check if the current guess has already been made
-    if guess in game.previous_guesses:
-        print(f"Guess {guess} has already been made")
-        # If the guess has already been made, do not modify the game state
-        return
+    # Check if the current guess has already been made (use set comparison to match check_guess logic)
+    guess_set = set(guess)
+    for previous_guess in game.previous_guesses:
+        if set(previous_guess) == guess_set:
+            print(f"Guess {guess} has already been made")
+            # If the guess has already been made, do not modify the game state
+            return
 
     # Add the new guess to the list of previous guesses
     game.previous_guesses.append(guess)

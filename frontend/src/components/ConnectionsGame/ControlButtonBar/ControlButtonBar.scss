@@ -15,4 +15,15 @@
       cursor: default;
     }
   }
+
+  // Fade out animation when game ends
+  &.fade-out {
+    animation: fadeOut 300ms ease-out forwards;
+  }
+}
+
+// Fade out keyframe animation
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; pointer-events: none; }
 }
