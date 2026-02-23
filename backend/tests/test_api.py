@@ -1,312 +1,152 @@
 import json
 import unittest
-from unittest import mock
-from unittest.mock import patch
-from unittest.mock import MagicMock
+from unittest.mock import patch, MagicMock
 
 from flask import Flask
-from src.blueprints.api.routes import (
-    game_status,
-    generate_grid,
-    submit_guess,
-    restart,
-)
-from src.services.utils import create_response
-from src.models.models import db
+from src.blueprints.api.routes import api_bp
+
+GAME_STATE = {
+    "gameId": "test-game-id",
+    "grid": ["apple", "banana", "cherry", "date"],
+    "connections": [
+        {"relationship": "Fruits", "words": ["apple", "banana", "cherry", "date"], "guessed": False}
+    ],
+    "mistakesLeft": 4,
+    "status": "IN_PROGRESS",
+    "previousGuesses": [],
+    "puzzleNumber": 1,
+}
 
 
 class TestAPI(unittest.TestCase):
 
     def setUp(self):
-        # API
-        # Set up Flask app and push application context
         self.app = Flask(__name__)
-        self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
         self.app.config["TESTING"] = True
-        db.init_app(self.app)
-        with self.app.app_context():
-            db.create_all()  # Create all tables
-        self.ctx = self.app.app_context()
-        self.ctx.push()
+        self.app.register_blueprint(api_bp, url_prefix="/connections")
+        self.client = self.app.test_client()
 
-        self.connections = [
-            {
-                "relationship": "Fruits",
-                "guessed": False,
-                "words": ["apple", "banana", "cherry", "date"],
-            },
-            {
-                "relationship": "Ocean Life",
-                "guessed": False,
-                "words": ["whale", "coral", "shark", "dolphin"],
-            },
-            {
-                "relationship": "Space Exploration",
-                "guessed": False,
-                "words": ["astronaut", "rocket", "satellite", "nebula"],
-            },
-            {
-                "relationship": "Musical Instruments",
-                "guessed": False,
-                "words": ["guitar", "piano", "violin", "drum"],
-            },
+    # ---------------------------------------------------------------------------
+    # GET /generate-grid
+    # ---------------------------------------------------------------------------
+
+    @patch("src.blueprints.api.routes.get_optional_user_id", return_value=None)
+    @patch("src.blueprints.api.routes.create_new_game", return_value=GAME_STATE)
+    def test_generate_grid_success(self, mock_create, mock_user_id):
+        response = self.client.get("/connections/generate-grid")
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(data["data"]["gameId"], "test-game-id")
+
+    @patch("src.blueprints.api.routes.get_optional_user_id", return_value=None)
+    @patch("src.blueprints.api.routes.create_new_game", return_value=None)
+    def test_generate_grid_failure(self, mock_create, mock_user_id):
+        response = self.client.get("/connections/generate-grid")
+        self.assertEqual(response.status_code, 500)
+
+    @patch("src.blueprints.api.routes.get_optional_user_id", return_value="user-uuid")
+    @patch("src.blueprints.api.routes.create_new_game", return_value=GAME_STATE)
+    def test_generate_grid_passes_user_id(self, mock_create, mock_user_id):
+        self.client.get("/connections/generate-grid")
+        mock_create.assert_called_once_with(user_id="user-uuid")
+
+    # ---------------------------------------------------------------------------
+    # POST /submit-guess
+    # ---------------------------------------------------------------------------
+
+    @patch("src.blueprints.api.routes.validate_id", return_value=True)
+    @patch("src.blueprints.api.routes.process_guess")
+    def test_submit_guess_correct(self, mock_process, mock_validate):
+        guessed_connections = [
+            {"relationship": "Fruits", "words": ["apple", "banana", "cherry", "date"], "guessed": True}
         ]
-        self.grid = [word for connection in self.connections for word in connection["words"]]
-
-    def tearDown(self):
-        # Close all sessions first while the application context is still active
-        db.session.remove()
-        # Then pop the application context
-        self.ctx.pop()
-
-    @patch("src.api.create_new_game")
-    @patch("src.api.create_response")
-    def test_generate_grid(self, mock_create_response, mock_create_new_game):
-        # Setup
-        mock_game = mock_create_new_game.return_value
-        mock_game.id = "12345"
-
-        # Test successful grid generation
-        mock_create_new_game.return_value = mock_game
-        expected_response = create_response(data={"gameId": "12345"}, status_code=201)
-        mock_create_response.return_value = expected_response
-
-        response = generate_grid()
-        mock_create_response.assert_called_once_with(data={"gameId": "12345"}, status_code=201)
-        self.assertEqual(response, expected_response)
-
-        # Test failure in grid generation
-        mock_create_new_game.return_value = None
-        error_response = create_response(error="Failed to generate the game grid.", status_code=500)
-        mock_create_response.return_value = error_response
-
-        response = generate_grid()
-        mock_create_response.assert_called_with(
-            error="Failed to generate the game grid.", status_code=500
+        mock_process.return_value = (
+            {**GAME_STATE, "connections": guessed_connections},
+            True, True, True, ""
         )
-        self.assertEqual(response, error_response)
-
-    @patch("src.api.create_response")
-    @patch("src.api.parse_and_validate_request")
-    @patch("src.api.validate_id")
-    @patch("src.api.process_guess")
-    def test_submit_guess_valid_guess(
-        self,
-        mock_process_guess,
-        mock_validate_id,
-        mock_parse_and_validate_request,
-        mock_create_response,
-    ):
-        # Setup for valid guess
-        mock_parse_and_validate_request.return_value = (
-            {"gameId": "12345", "guess": ["word1", "word2", "word3", "word4"]},
-            None,
+        response = self.client.post(
+            "/connections/submit-guess",
+            json={"gameId": "test-game-id", "guess": ["apple", "banana", "cherry", "date"]},
         )
-        mock_validate_id.return_value = True
-        mock_process_guess.return_value = (MagicMock(), True, True, True)
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_create_response.return_value = mock_response
-
-        # Execute
-        response = submit_guess()
-
-        # Verify
-        mock_create_response.assert_called_once_with(data=mock.ANY)
+        data = json.loads(response.data)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(data["data"]["isCorrect"])
 
-    @patch("src.api.create_response")
-    @patch("src.game.validate_id")
-    def test_submit_guess_invalid_game_id(self, mock_validate_id, mock_create_response):
-        # Setup for invalid game ID
-        mock_validate_id.return_value = False
-
-        # Execute
-        with self.app.test_request_context(
-            "/path",
-            method="POST",
-            headers={"Content-Type": "application/json"},
-            data=json.dumps({"gameId": "12345", "guess": ["word1", "word2", "word3", "word4"]}),
-        ):
-            response = submit_guess()
-
-        # Verify
-        mock_create_response.assert_called_with(error="Invalid game ID.", status_code=404)
-
-    @patch("src.api.create_response")
-    @patch("src.api.process_guess")
-    @patch("src.api.validate_id")
-    def test_submit_guess_invalid_guess(
-        self, mock_validate_id, mock_process_guess, mock_create_response
-    ):
-        # Setup for invalid guess
-        mock_validate_id.return_value = True
-        mock_process_guess.return_value = (None, False, False, False)
-        mock_response = MagicMock()
-        mock_response.status_code = 400
-        mock_create_response.return_value = mock_response
-
-        # Execute
-        with self.app.test_request_context(
-            "/path",
-            method="POST",
-            headers={"Content-Type": "application/json"},
-            data=json.dumps({"gameId": "12345", "guess": ["word1", "word2", "word3", "word4"]}),
-        ):
-            response = submit_guess()
-
-        # Verify
-        mock_create_response.assert_called_with(error="Invalid guess.", status_code=400)
-        self.assertEqual(response.status_code, 400)
-
-    @patch("src.api.create_response")
-    @patch("src.api.parse_and_validate_request")
-    def test_submit_guess_error_in_request_parsing(
-        self, mock_parse_and_validate_request, mock_create_response
-    ):
-        # Setup
-        mock_parse_and_validate_request.return_value = (None, "Error parsing request")
-        mock_response = MagicMock()
-        mock_response.status_code = 400
-        mock_create_response.return_value = mock_response
-
-        # Execute
-        with self.app.test_request_context(
-            "/path",
-            method="POST",
-            headers={"Content-Type": "application/json"},
-            data=json.dumps({"gameId": "12345", "guess": ["word1", "word2", "word3", "word4"]}),
-        ):
-            response = submit_guess()
-
-        # Verify
-        mock_create_response.assert_called_with(error="Error parsing request", status_code=400)
-        self.assertEqual(response.status_code, 400)
-
-    @patch("src.api.create_response")
-    @patch("src.api.parse_and_validate_request")
-    def test_game_status_error_in_request_parsing(
-        self, mock_parse_and_validate_request, mock_create_response
-    ):
-        # Setup
-        mock_parse_and_validate_request.return_value = (None, "Error parsing request")
-        mock_response = MagicMock()
-        mock_response.status_code = 400
-        mock_create_response.return_value = mock_response
-
-        # Execute
-        response = game_status()
-
-        # Verify
-        mock_create_response.assert_called_with(error="Error parsing request", status_code=400)
-        self.assertEqual(response.status_code, 400)
-
-    @patch("src.api.create_response")
-    @patch("src.api.validate_id")
-    @patch("src.api.parse_and_validate_request")
-    def test_game_status_invalid_id(
-        self, mock_parse_and_validate_request, mock_validate_id, mock_create_response
-    ):
-        # Setup
-        mock_parse_and_validate_request.return_value = ({"gameId": "invalid_id"}, None)
-        mock_validate_id.return_value = False
-        mock_response = MagicMock()
-        mock_response.status_code = 404
-        mock_create_response.return_value = mock_response
-
-        # Execute
-        response = game_status()
-
-        # Verify
-        mock_create_response.assert_called_with(error="Invalid game ID.", status_code=404)
+    @patch("src.blueprints.api.routes.validate_id", return_value=False)
+    def test_submit_guess_invalid_game_id(self, mock_validate):
+        response = self.client.post(
+            "/connections/submit-guess",
+            json={"gameId": "bad-id", "guess": ["a", "b", "c", "d"]},
+        )
         self.assertEqual(response.status_code, 404)
 
-    @patch("src.api.create_response")
-    @patch("src.api.get_game_state")
-    @patch("src.api.validate_id")
-    @patch("src.api.parse_and_validate_request")
-    def test_game_status_valid_input(
-        self,
-        mock_parse_and_validate_request,
-        mock_validate_id,
-        mock_get_game_state,
-        mock_create_response,
-    ):
-        # Setup
-        mock_parse_and_validate_request.return_value = ({"gameId": "valid_id"}, None)
-        mock_validate_id.return_value = True
-        mock_game_state = MagicMock()
-        mock_game_state.to_state.return_value = {"gameId": "valid_id", "status": "IN_PROGRESS"}
-        mock_get_game_state.return_value = mock_game_state
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_create_response.return_value = mock_response
-
-        # Execute
-        response = game_status()
-
-        # Verify
-        mock_create_response.assert_called_with(
-            data={"gameId": "valid_id", "status": "IN_PROGRESS"}
+    @patch("src.blueprints.api.routes.validate_id", return_value=True)
+    @patch("src.blueprints.api.routes.process_guess", return_value=(None, False, False, False, "duplicate"))
+    def test_submit_guess_invalid_guess(self, mock_process, mock_validate):
+        response = self.client.post(
+            "/connections/submit-guess",
+            json={"gameId": "test-game-id", "guess": ["a", "b", "c", "d"]},
         )
-        self.assertEqual(response.status_code, 200)
-
-    @patch("src.api.create_response")
-    @patch("src.api.parse_and_validate_request")
-    def test_restart_game_error_in_request_parsing(
-        self, mock_parse_and_validate_request, mock_create_response
-    ):
-        # Setup
-        mock_parse_and_validate_request.return_value = (None, "Error parsing request")
-        mock_create_response.return_value = MagicMock(status_code=400)
-
-        # Execute
-        response = restart()  # Added dummy ID for the function call
-
-        # Verify
-        mock_create_response.assert_called_with(error="Error parsing request", status_code=400)
         self.assertEqual(response.status_code, 400)
 
-    @patch("src.api.create_response")
-    @patch("src.api.validate_id")
-    @patch("src.api.parse_and_validate_request")
-    def test_restart_game_invalid_id(
-        self, mock_parse_and_validate_request, mock_validate_id, mock_create_response
-    ):
-        # Setup
-        mock_parse_and_validate_request.return_value = ({"gameId": "invalid_id"}, None)
-        mock_validate_id.return_value = False
-        mock_create_response.return_value = MagicMock(status_code=404)
+    def test_submit_guess_missing_fields(self):
+        response = self.client.post(
+            "/connections/submit-guess",
+            json={"gameId": "test-game-id"},
+        )
+        self.assertEqual(response.status_code, 400)
 
-        # Execute
-        response = restart()  # Using the specific invalid ID
+    # ---------------------------------------------------------------------------
+    # POST /game-status
+    # ---------------------------------------------------------------------------
 
-        # Verify
-        mock_create_response.assert_called_with(error="Invalid game ID.", status_code=404)
+    @patch("src.blueprints.api.routes.validate_id", return_value=True)
+    @patch("src.blueprints.api.routes.get_game_state", return_value=GAME_STATE)
+    def test_game_status_valid(self, mock_get_state, mock_validate):
+        response = self.client.post(
+            "/connections/game-status",
+            json={"gameId": "test-game-id"},
+        )
+        data = json.loads(response.data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(data["data"]["gameId"], "test-game-id")
+        self.assertEqual(data["data"]["status"], "IN_PROGRESS")
+
+    @patch("src.blueprints.api.routes.validate_id", return_value=False)
+    def test_game_status_invalid_id(self, mock_validate):
+        response = self.client.post(
+            "/connections/game-status",
+            json={"gameId": "bad-id"},
+        )
         self.assertEqual(response.status_code, 404)
 
-    @patch("src.api.create_response")
-    @patch("src.api.restart_game")
-    @patch("src.api.validate_id")
-    @patch("src.api.parse_and_validate_request")
-    def test_restart_game_valid_request(
-        self,
-        mock_parse_and_validate_request,
-        mock_validate_id,
-        mock_restart_game,
-        mock_create_response,
-    ):
-        # Setup
-        mock_parse_and_validate_request.return_value = ({"gameId": "valid_id"}, None)
-        mock_validate_id.return_value = True
-        mock_game = MagicMock()
-        mock_game.to_state.return_value = {"gameId": "valid_id", "status": "RESTARTED"}
-        mock_restart_game.return_value = mock_game
-        mock_create_response.return_value = MagicMock(status_code=200)
+    def test_game_status_missing_game_id(self):
+        response = self.client.post("/connections/game-status", json={})
+        self.assertEqual(response.status_code, 400)
 
-        # Execute
-        response = restart()  # Using the specific valid ID
+    # ---------------------------------------------------------------------------
+    # POST /restart-game
+    # ---------------------------------------------------------------------------
 
-        # Verify
-        mock_create_response.assert_called_with(data={"gameId": "valid_id", "status": "RESTARTED"})
+    @patch("src.blueprints.api.routes.validate_id", return_value=True)
+    @patch("src.blueprints.api.routes.restart_game", return_value=GAME_STATE)
+    def test_restart_game_valid(self, mock_restart, mock_validate):
+        response = self.client.post(
+            "/connections/restart-game",
+            json={"gameId": "test-game-id"},
+        )
+        data = json.loads(response.data)
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(data["data"]["status"], "IN_PROGRESS")
+
+    @patch("src.blueprints.api.routes.validate_id", return_value=False)
+    def test_restart_game_invalid_id(self, mock_validate):
+        response = self.client.post(
+            "/connections/restart-game",
+            json={"gameId": "bad-id"},
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_restart_game_missing_game_id(self):
+        response = self.client.post("/connections/restart-game", json={})
+        self.assertEqual(response.status_code, 400)

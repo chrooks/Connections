@@ -102,7 +102,7 @@ class PuzzlePoolEmptyError(Exception):
 # Public API
 # ---------------------------------------------------------------------------
 
-def get_puzzle_from_pool(config_name: str = "classic") -> "list[dict]":
+def get_puzzle_from_pool(config_name: str = "classic") -> "tuple[list[dict], str]":
     """
     Fetches one random approved puzzle and returns it in the connections format.
 
@@ -113,12 +113,15 @@ def get_puzzle_from_pool(config_name: str = "classic") -> "list[dict]":
       2. Increments times_served so the pool can be load-balanced over time.
 
     Returns:
-        List of connection dicts ready for game.py / dal.py:
+        A tuple of (connections, puzzle_id) where connections is a list of
+        connection dicts ready for game_session_service.py:
         [
             {"relationship": "Category Name", "words": ["w1", "w2", "w3", "w4"],
              "guessed": False},
             ...
         ]
+        and puzzle_id is the UUID of the puzzle row in Supabase, used to link
+        the new game_session back to the pool puzzle it was drawn from.
 
     Raises:
         PuzzlePoolEmptyError: No approved puzzles exist for this config.
@@ -161,7 +164,7 @@ def get_puzzle_from_pool(config_name: str = "classic") -> "list[dict]":
             "Check that seed_puzzle_to_pool completed without errors."
         )
 
-    # Transform DB shape → the format that game.py and dal.py expect.
+    # Transform DB shape → the format that game_session_service.py expects.
     # Each connection dict must have: relationship, words, guessed.
     connections = []
     for group in groups_result.data:
@@ -177,7 +180,7 @@ def get_puzzle_from_pool(config_name: str = "classic") -> "list[dict]":
             "guessed": False,  # all groups start unguessed when a new game is created
         })
 
-    return connections
+    return connections, puzzle_id
 
 
 def get_pool_stats(config_name: str = "classic") -> dict:

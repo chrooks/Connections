@@ -75,15 +75,17 @@ class TestGetPuzzleFromPool(unittest.TestCase):
             ]
         )
 
-        result = get_puzzle_from_pool("classic")
+        connections, puzzle_id = get_puzzle_from_pool("classic")
 
         # Shape: list of dicts with relationship, words, guessed
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["relationship"], "Fruits")
-        self.assertFalse(result[0]["guessed"])  # all groups start unguessed
+        self.assertEqual(len(connections), 1)
+        self.assertEqual(connections[0]["relationship"], "Fruits")
+        self.assertFalse(connections[0]["guessed"])  # all groups start unguessed
         # display_text wins when present; falls back to word when None
-        self.assertIn("APPLE", result[0]["words"])
-        self.assertIn("banana", result[0]["words"])
+        self.assertIn("APPLE", connections[0]["words"])
+        self.assertIn("banana", connections[0]["words"])
+        # puzzle_id is the UUID returned by the RPC
+        self.assertEqual(puzzle_id, PUZZLE_ID)
 
     @patch("src.services.puzzle_pool_service._get_config_id", return_value=CONFIG_ID)
     @patch("src.services.puzzle_pool_service._get_client")
@@ -122,9 +124,9 @@ class TestGetPuzzleFromPool(unittest.TestCase):
             }]
         )
 
-        result = get_puzzle_from_pool()
-        self.assertIn("McCARTHY", result[0]["words"])
-        self.assertNotIn("mccarthy", result[0]["words"])
+        connections, puzzle_id = get_puzzle_from_pool()
+        self.assertIn("McCARTHY", connections[0]["words"])
+        self.assertNotIn("mccarthy", connections[0]["words"])
 
     @patch("src.services.puzzle_pool_service._get_config_id", return_value=CONFIG_ID)
     @patch("src.services.puzzle_pool_service._get_client")

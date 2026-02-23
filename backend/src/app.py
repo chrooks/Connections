@@ -19,7 +19,6 @@ from flask import Flask
 # Load environment variables from .env file
 load_dotenv()
 from flask_cors import CORS
-from .models.models import db
 from .blueprints.api.routes import api_bp
 from .services.utils import create_response
 
@@ -27,8 +26,6 @@ from .services.utils import create_response
 def create_app():
     app = Flask(__name__)
     CORS(app)
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
-    db.init_app(app)  # Bind the app with the SQLAlchemy instance
     app.register_blueprint(api_bp, url_prefix="/connections")
 
     @app.route("/")
@@ -48,6 +45,4 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)

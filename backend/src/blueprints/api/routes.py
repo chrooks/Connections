@@ -2,11 +2,11 @@
 This module, 'routes.py', serves as the core interface for the Connections game API, defining and managing all the necessary API endpoints for game interaction.
 
 Detailed Endpoint Descriptions:
-- POST /generate-grid: Initiates a new game session by generating a fresh game grid.
+- GET /generate-grid: Initiates a new game session by generating a fresh game grid.
 - POST /submit-guess: Accepts and evaluates a player's guess, comparing it to established game connections.
-- GET /game-status: Provides the current status and progress of an ongoing game session.
+- POST /game-status: Provides the current status and progress of an ongoing game session.
 - POST /restart-game: Resets an existing game with a new grid, effectively starting a new game session.
-- GET /all-games: Retrieves data for all game sessions.
+- GET /get-game-data: Retrieves data for all game sessions.
 
 
 Associated Functions:
@@ -26,6 +26,7 @@ from ...game.game import (
     validate_id,
     restart_game,
 )
+from ...auth.middleware import get_optional_user_id
 from ...services.utils import parse_and_validate_request, create_response
 
 api_bp = Blueprint("connections", __name__)
@@ -34,19 +35,21 @@ api_bp = Blueprint("connections", __name__)
 @api_bp.route("/generate-grid", methods=["GET"])
 def generate_grid():
     """
-    Generates a new game grid with randomly selected words upon receiving a POST request.
+    Generates a new game grid with randomly selected words upon receiving a GET request.
     This creates a new game session and returns a unique game ID along with the initial grid state,
     mistakes left, previous guesses, game over status, and connections.
 
-    If an error occurs during grid generation, the endpoint will return an error message.
+    If an authenticated user token is present it is extracted and linked to the session;
+    guest requests (no token) create an unowned session.
     """
-    game = create_new_game()
+    user_id = get_optional_user_id()
+    game = create_new_game(user_id=user_id)
 
     if not game:
         return create_response(error="Failed to generate the game grid.", status_code=500)
 
     return create_response(
-        data={"gameId": game.id},
+        data={"gameId": game["gameId"]},
         status_code=201,
     )
 
@@ -110,10 +113,8 @@ def game_status():
     if not validate_id(game_id):
         return create_response(error="Invalid game ID.", status_code=404)
 
-    # Get the game state
     game = get_game_state(game_id)
-
-    return create_response(data=game.to_state())
+    return create_response(data=game)
 
 
 @api_bp.route("/restart-game", methods=["POST"])
@@ -133,8 +134,7 @@ def restart():
         return create_response(error="Invalid game ID.", status_code=404)
 
     game = restart_game(game_id)
-
-    return create_response(data=game.to_state())
+    return create_response(data=game)
 
 
 @api_bp.route("/get-game-data", methods=["GET"])
@@ -143,5 +143,4 @@ def get_all_game_data():
     Returns the game statuses of all games in the database.
     """
     games_data = get_all_games_data()
-
     return create_response(data={"games": games_data})
