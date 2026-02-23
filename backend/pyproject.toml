@@ -1,0 +1,8 @@
+[tool.pytest.ini_options]
+# Run pytest from the backend/ directory: `pytest` or `pytest tests/`
+# rootdir is anchored here by this file's presence.
+testpaths = ["tests"]
+
+# importmode=importlib lets pytest import test modules without requiring
+# __init__.py in every directory, and avoids sys.path manipulation surprises.
+addopts = "--import-mode=importlib"

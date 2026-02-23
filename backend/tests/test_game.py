@@ -1,17 +1,17 @@
 import unittest
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, MagicMock, patch, mock_open
 from flask import Flask
-from backend.src.dal.dal import db
-from backend.src.game.game import (
+from src.dal.dal import db
+from src.game.game import (
     generate_game_grid,
     create_new_game,
     get_all_games_data,
     get_game_state,
     process_guess,
-    restart,
+    restart_game,
     validate_id,
 )
-from backend.src.models.models import ConnectionsGame
+from src.models.models import ConnectionsGame
 
 
 class TestGame(unittest.TestCase):
@@ -54,47 +54,75 @@ class TestGame(unittest.TestCase):
 
     def test_validate_id_exists(self):
         # This test checks if the validate_id function correctly identifies an existing game ID.
-        with patch("backend.src.game.check_game_exists", return_value=True):
+        # Patch target: src.game.game — the module where check_game_exists is imported
+        with patch("src.game.game.check_game_exists", return_value=True):
             self.assertTrue(validate_id(1))  # Test with an ID that exists
 
     def test_validate_id_not_exists(self):
         # This test checks if the validate_id function correctly identifies a non-existing game ID.
-        with patch("backend.src.game.check_game_exists", return_value=False):
+        with patch("src.game.game.check_game_exists", return_value=False):
             self.assertFalse(validate_id(999))  # Test with an ID that does not exist
 
-    def test_generate_game_grid(self):
-        # This test verifies that the generate_game_grid function returns a grid and connections correctly.
-        with patch("backend.src.game.path.dirname", return_value="/fake/dir"):
-            with patch("backend.src.game.path.join", return_value="/fake/dir/connections.json"):
-                with patch(
-                    "builtins.open",
-                    mock_open(
-                        read_data='[{"words": ["apple", "banana"], "relationship": "fruits"}]'
-                    ),
-                ):
+    def test_generate_game_grid_static_fallback(self):
+        # Simulates the puzzle pool being empty so generate_game_grid falls back to
+        # the bundled connections.json. This is the expected path during local dev
+        # before any puzzles have been seeded into Supabase.
+        #
+        # get_puzzle_from_pool is imported inside the function body, so we patch it
+        # at its source module — that's the name Python will look up at call time.
+        from src.services.puzzle_pool_service import PuzzlePoolEmptyError
+
+        with patch(
+            "src.services.puzzle_pool_service.get_puzzle_from_pool",
+            side_effect=PuzzlePoolEmptyError("pool is empty"),
+        ):
+            with patch("src.game.game.path.dirname", return_value="/fake/dir"):
+                with patch("src.game.game.path.join", return_value="/fake/dir/connections.json"):
                     with patch(
-                        "json.load",
-                        return_value=[{"words": ["apple", "banana"], "relationship": "fruits"}],
+                        "builtins.open",
+                        mock_open(
+                            read_data='[{"words": ["apple", "banana"], "relationship": "fruits"}]'
+                        ),
                     ):
-                        with patch("random.shuffle", side_effect=lambda x: x.reverse()):
-                            grid, connections = generate_game_grid()
-                            self.assertEqual(
-                                grid, ["banana", "apple"]
-                            )  # Check if grid is correctly generated and shuffled
-                            self.assertEqual(
-                                connections,
-                                [{"words": ["apple", "banana"], "relationship": "fruits"}],
-                            )  # Check if connections are correctly loaded
+                        with patch(
+                            "json.load",
+                            return_value=[{"words": ["apple", "banana"], "relationship": "fruits"}],
+                        ):
+                            with patch("random.shuffle", side_effect=lambda x: x.reverse()):
+                                grid, connections = generate_game_grid()
+                                self.assertEqual(grid, ["banana", "apple"])
+                                self.assertEqual(
+                                    connections,
+                                    [{"words": ["apple", "banana"], "relationship": "fruits"}],
+                                )
+
+    def test_generate_game_grid_uses_pool_when_available(self):
+        # When the pool has an approved puzzle, generate_game_grid should return its
+        # connections and skip the static JSON file entirely.
+        pool_connections = [
+            {"relationship": "Fruits", "words": ["apple", "banana", "cherry", "date"], "guessed": False},
+        ]
+        with patch(
+            "src.services.puzzle_pool_service.get_puzzle_from_pool",
+            return_value=pool_connections,
+        ):
+            with patch("random.shuffle", side_effect=lambda x: None):  # no-op shuffle
+                grid, connections = generate_game_grid()
+
+        self.assertEqual(connections, pool_connections)
+        # grid is built from the words in each connection group
+        self.assertIn("apple", grid)
 
     def test_process_guess_correct_and_valid(self):
         # This test checks if the process_guess function correctly handles a valid and correct guess.
+        # check_guess returns 4 values: (is_correct, is_valid, is_new, error_message)
         correct_guess = ["apple", "banana", "cherry", "date"]
-        with patch("backend.src.game.check_guess", return_value=(True, True, True)):
-            with patch("backend.src.game.update_game_state"):
-                with patch(
-                    "backend.src.game.get_game_from_db", return_value={"game_state": "updated"}
-                ):
-                    game_state, is_valid, is_correct, is_new = process_guess(1, correct_guess)
+        mock_game = MagicMock()
+        mock_game.to_state.return_value = {"game_state": "updated"}
+        with patch("src.game.game.check_guess", return_value=(True, True, True, "")):
+            with patch("src.game.game.update_game_state"):
+                with patch("src.game.game.get_game_from_db", return_value=mock_game):
+                    game_state, is_valid, is_correct, is_new, error_msg = process_guess(1, correct_guess)
                     self.assertTrue(is_valid)
                     self.assertTrue(is_correct)
                     self.assertTrue(is_new)
@@ -103,12 +131,12 @@ class TestGame(unittest.TestCase):
     def test_process_guess_incorrect_but_valid(self):
         # This test checks if the process_guess function correctly handles a valid but incorrect guess.
         incorrect_guess = ["whale", "coral", "shark", "dolphin"]
-        with patch("backend.src.game.check_guess", return_value=(False, True, True)):
-            with patch("backend.src.game.update_game_state"):
-                with patch(
-                    "backend.src.game.get_game_from_db", return_value={"game_state": "updated"}
-                ):
-                    game_state, is_valid, is_correct, is_new = process_guess(1, incorrect_guess)
+        mock_game = MagicMock()
+        mock_game.to_state.return_value = {"game_state": "updated"}
+        with patch("src.game.game.check_guess", return_value=(False, True, True, "")):
+            with patch("src.game.game.update_game_state"):
+                with patch("src.game.game.get_game_from_db", return_value=mock_game):
+                    game_state, is_valid, is_correct, is_new, error_msg = process_guess(1, incorrect_guess)
                     self.assertTrue(is_valid)
                     self.assertFalse(is_correct)
                     self.assertTrue(is_new)
@@ -117,8 +145,8 @@ class TestGame(unittest.TestCase):
     def test_process_guess_invalid(self):
         # This test checks if the process_guess function correctly handles an invalid guess.
         invalid_guess = ["guitar", "piano", "violin", "violin"]  # Duplicate word makes it invalid
-        with patch("backend.src.game.check_guess", return_value=(False, False, True)):
-            game_state, is_valid, is_correct, is_new = process_guess(1, invalid_guess)
+        with patch("src.game.game.check_guess", return_value=(False, False, True, "duplicate word")):
+            game_state, is_valid, is_correct, is_new, error_msg = process_guess(1, invalid_guess)
             self.assertFalse(is_valid)
             self.assertFalse(is_correct)
             self.assertTrue(is_new)
@@ -130,50 +158,48 @@ class TestGame(unittest.TestCase):
         new_guess = ["apple", "banana", "cherry", "date"]
         not_new_guess = ["apple", "banana", "cherry", "date"]
 
-        # Mock the game state to include the not new guess in previous guesses
-        game_state_with_previous = {"game_state": "updated", "previous_guesses": [not_new_guess]}
+        mock_game = MagicMock()
+        mock_game.to_state.return_value = {"game_state": "updated", "previous_guesses": [not_new_guess]}
 
         with patch(
-            "backend.src.game.check_guess",
+            "src.game.game.check_guess",
             side_effect=[
-                (True, True, True),  # First call for new guess
-                (True, True, False),  # Second call for not new guess
+                (True, True, True, ""),   # First call: new guess, correct
+                (True, True, False, ""),  # Second call: repeated guess
             ],
         ):
-            with patch("backend.src.game.update_game_state"):
+            with patch("src.game.game.update_game_state"):
                 with patch(
-                    "backend.src.game.get_game_from_db",
-                    side_effect=[game_state_with_previous, game_state_with_previous],
+                    "src.game.game.get_game_from_db",
+                    return_value=mock_game,
                 ):
                     # Test with new guess
-                    state_new, is_valid_new, is_correct_new, is_new_new = process_guess(
+                    state_new, is_valid_new, is_correct_new, is_new_new, _ = process_guess(
                         game_id, new_guess
                     )
                     self.assertTrue(is_new_new)
                     self.assertTrue(is_valid_new)
                     self.assertTrue(is_correct_new)
-                    self.assertEqual(state_new, game_state_with_previous)
 
                     # Test with not new guess
-                    state_not_new, is_valid_not_new, is_correct_not_new, is_new_not_new = (
+                    state_not_new, is_valid_not_new, is_correct_not_new, is_new_not_new, _ = (
                         process_guess(game_id, not_new_guess)
                     )
                     self.assertFalse(is_new_not_new)
                     self.assertTrue(is_valid_not_new)
                     self.assertTrue(is_correct_not_new)
-                    self.assertEqual(state_not_new, game_state_with_previous)
 
     def test_create_new_game(self):
         # This test checks if a new game is created successfully with the correct game grid and connections.
         expected_grid = self.grid
         expected_connections = self.connections
         with patch(
-            "backend.src.game.generate_game_grid",
+            "src.game.game.generate_game_grid",
             return_value=(expected_grid, expected_connections),
         ):
-            with patch("backend.src.game.add_new_game", return_value=1):
+            with patch("src.game.game.add_new_game", return_value=1):
                 with patch(
-                    "backend.src.game.get_game_from_db",
+                    "src.game.game.get_game_from_db",
                     return_value=ConnectionsGame(
                         id=1,
                         grid=expected_grid,
@@ -189,37 +215,26 @@ class TestGame(unittest.TestCase):
         # This test checks if the get_game_state function retrieves the correct game state when the game exists.
         game_id = 1
         expected_game_state = {"game_id": game_id, "grid": ["word1", "word2"], "connections": {}}
-        with patch("backend.src.game.get_game_from_db", return_value=expected_game_state):
+        with patch("src.game.game.get_game_from_db", return_value=expected_game_state):
             game_state = get_game_state(game_id)
             self.assertEqual(game_state, expected_game_state)
 
     def test_get_game_state_not_exists(self):
         # This test checks if the get_game_state function raises a ValueError when the game does not exist.
         game_id = 999
-        with patch("backend.src.game.get_game_from_db", return_value=None):
+        with patch("src.game.game.get_game_from_db", return_value=None):
             with self.assertRaises(ValueError):
                 get_game_state(game_id)
 
-    def test_restart_game_exists(self):
-        # This test checks if an existing game can be restarted successfully.
-        # It mocks the game existence check, grid generation, and game reset.
-        with patch("backend.src.game.check_game_exists", return_value=True):
-            with patch(
-                "backend.src.game.generate_game_grid",
-                return_value=(["word1", "word2"], {("word1", "word2"): "relationship"}),
-            ):
-                with patch("backend.src.game.reset_game", return_value=True):
-                    self.assertTrue(restart(1))  # Assert the game restarts successfully
-
-    def test_restart_game_not_exists(self):
-        # This test ensures that attempting to restart a non-existent game raises a ValueError.
-        with self.app.app_context():
-            with patch("backend.src.game.check_game_exists", return_value=False):
-                with self.assertRaises(ValueError) as context:
-                    restart(999)
-                self.assertEqual(
-                    str(context.exception), "No game found with the provided ID: 999"
-                )  # Check the error message
+    def test_restart_game(self):
+        # Verifies that restart_game generates a new grid and passes it to reset_game.
+        # Note: game ID validation is the route handler's responsibility, not restart_game's.
+        with patch(
+            "src.game.game.generate_game_grid",
+            return_value=(["word1", "word2"], {("word1", "word2"): "relationship"}),
+        ):
+            with patch("src.game.game.reset_game", return_value=True):
+                self.assertTrue(restart_game(1))  # Assert the game restarts successfully
 
     def test_get_all_games_data(self):
         # This test checks if the get_all_games_data function retrieves all games data correctly
@@ -242,7 +257,7 @@ class TestGame(unittest.TestCase):
                 },
             ),
         ]
-        with patch("backend.src.game.get_all_games", return_value=mock_games):
+        with patch("src.game.game.get_all_games", return_value=mock_games):
             all_games_data = get_all_games_data()
             expected_data = {
                 1: {

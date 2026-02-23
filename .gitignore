@@ -1,7 +1,13 @@
 backend/venv/
 backend/.venv/
-backend/src/__pycache__/
-backend/tests/__pycache__/
-__pycache__
+
+# Python bytecode — ignore everywhere in the project
+__pycache__/
+*.pyc
+*.pyo
+
+# pytest caches — generated wherever pytest is invoked from
+.pytest_cache/
+
 backend/connectionsdb.db
 .env

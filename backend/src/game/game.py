@@ -15,11 +15,14 @@ Functions:
 - get_all_games_data(): Retrieves the status of all games.
 """
 
+import logging
 import random
 from os import path
 import json
 
 from ..models.models import ConnectionsGame
+
+logger = logging.getLogger(__name__)
 from ..dal.dal import (
     add_new_game,
     get_game_from_db,
@@ -45,39 +48,51 @@ def validate_id(game_id):
 
 def generate_game_grid():
     """
-    Generates the game grid and connections by reading the contents of 'placeholder.json'.
+    Generates the game grid and connections using a pool-first strategy.
 
-    :return: A tuple containing the game grid (list of words) and the connections
-             dictionary mapping word tuples to their connection (relationship).
+    Strategy:
+      1. Try to fetch a pre-generated, validated puzzle from the Supabase pool.
+         The pool is the primary source once puzzles have been seeded and approved.
+      2. Fall back to the static connections.json when the pool is empty (expected
+         during local dev before any puzzles are seeded) or unavailable (network
+         error, missing env vars, etc.).
+
+    :return: A tuple of (grid, connections) where:
+             - grid is a shuffled list of 16 word strings
+             - connections is a list of dicts: [{relationship, words, guessed}, ...]
     """
-    # Commenting out the previous functionality
-    # try:
-    #     # Attempt to open and read the prompt from 'prompt.txt' with UTF-8 encoding
-    #     with open("backend/prompt.txt", "r", encoding="utf-8") as file:
-    #         prompt = file.read().strip()
-    # except FileNotFoundError:
-    #     # Handle the case where 'prompt.txt' does not exist
-    #     print("Error: 'prompt.txt' file not found.")
-    #     return [], {}
-    # except Exception as e:
-    #     # Handle other potential errors
-    #     print(f"An error occurred while reading 'prompt.txt': {e}")
-    #     return [], {}
+    # --- Pool-first: fetch from Supabase if possible ---
+    # Import here so that missing the supabase package (before requirements are
+    # installed) raises at call-time rather than crashing the whole module on import.
+    try:
+        from ..services.puzzle_pool_service import (
+            PuzzlePoolEmptyError,
+            get_puzzle_from_pool,
+        )
 
-    # # Simulating a LLM call
-    # llm_response = call_llm_api(prompt)
+        connections = get_puzzle_from_pool(config_name="classic")
+        grid = []
+        for connection in connections:
+            grid.extend(connection["words"])
 
-    # # Parsing the LLM response
-    # sets = llm_response.split("\n")
+        random.shuffle(grid)
+        logger.info("Generated game grid from puzzle pool (%d groups)", len(connections))
+        return grid, connections
 
-    # TODO: Replace with more sophisticated logic using an LLM
-    # Construct the absolute path to the placeholder.json file
-    current_dir = path.dirname(__file__)  # Gets the directory where this script is located
-    json_path = path.join(
-        current_dir, "../../schemas/connections.json"
-    )  # Constructs the path to the JSON file
+    except ImportError:
+        # supabase package not installed — silently fall back during early dev
+        logger.warning("supabase package not available; using static fallback")
+    except PuzzlePoolEmptyError:
+        # Expected during local development before any puzzles have been seeded
+        logger.warning("Puzzle pool is empty — falling back to static connections.json")
+    except Exception as e:
+        # Unexpected error (bad credentials, network down, etc.) — log and degrade
+        logger.warning("Puzzle pool unavailable (%s) — falling back to static JSON", e)
 
-    # Load data from placeholder.json
+    # --- Static fallback: read from the bundled JSON file ---
+    current_dir = path.dirname(__file__)  # directory of this script
+    json_path = path.join(current_dir, "../../schemas/connections.json")
+
     with open(json_path, "r") as file:
         data = json.load(file)
 
@@ -88,7 +103,7 @@ def generate_game_grid():
         grid.extend(connection["words"])
         connections.append(connection)
 
-    # Shuffle the grid for game variability
+    # Shuffle the grid so each game session has a different layout
     random.shuffle(grid)
     return grid, connections
 

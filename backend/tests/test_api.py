@@ -5,14 +5,14 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 
 from flask import Flask
-from backend.src.blueprints.api.routes import (
+from src.blueprints.api.routes import (
     game_status,
     generate_grid,
     submit_guess,
     restart,
 )
-from backend.src.services.utils import create_response
-from backend.src.models.models import db
+from src.services.utils import create_response
+from src.models.models import db
 
 
 class TestAPI(unittest.TestCase):
@@ -59,8 +59,8 @@ class TestAPI(unittest.TestCase):
         # Then pop the application context
         self.ctx.pop()
 
-    @patch("backend.src.api.create_new_game")
-    @patch("backend.src.api.create_response")
+    @patch("src.api.create_new_game")
+    @patch("src.api.create_response")
     def test_generate_grid(self, mock_create_response, mock_create_new_game):
         # Setup
         mock_game = mock_create_new_game.return_value
@@ -86,10 +86,10 @@ class TestAPI(unittest.TestCase):
         )
         self.assertEqual(response, error_response)
 
-    @patch("backend.src.api.create_response")
-    @patch("backend.src.api.parse_and_validate_request")
-    @patch("backend.src.api.validate_id")
-    @patch("backend.src.api.process_guess")
+    @patch("src.api.create_response")
+    @patch("src.api.parse_and_validate_request")
+    @patch("src.api.validate_id")
+    @patch("src.api.process_guess")
     def test_submit_guess_valid_guess(
         self,
         mock_process_guess,
@@ -115,8 +115,8 @@ class TestAPI(unittest.TestCase):
         mock_create_response.assert_called_once_with(data=mock.ANY)
         self.assertEqual(response.status_code, 200)
 
-    @patch("backend.src.api.create_response")
-    @patch("backend.src.game.validate_id")
+    @patch("src.api.create_response")
+    @patch("src.game.validate_id")
     def test_submit_guess_invalid_game_id(self, mock_validate_id, mock_create_response):
         # Setup for invalid game ID
         mock_validate_id.return_value = False
@@ -133,9 +133,9 @@ class TestAPI(unittest.TestCase):
         # Verify
         mock_create_response.assert_called_with(error="Invalid game ID.", status_code=404)
 
-    @patch("backend.src.api.create_response")
-    @patch("backend.src.api.process_guess")
-    @patch("backend.src.api.validate_id")
+    @patch("src.api.create_response")
+    @patch("src.api.process_guess")
+    @patch("src.api.validate_id")
     def test_submit_guess_invalid_guess(
         self, mock_validate_id, mock_process_guess, mock_create_response
     ):
@@ -159,8 +159,8 @@ class TestAPI(unittest.TestCase):
         mock_create_response.assert_called_with(error="Invalid guess.", status_code=400)
         self.assertEqual(response.status_code, 400)
 
-    @patch("backend.src.api.create_response")
-    @patch("backend.src.api.parse_and_validate_request")
+    @patch("src.api.create_response")
+    @patch("src.api.parse_and_validate_request")
     def test_submit_guess_error_in_request_parsing(
         self, mock_parse_and_validate_request, mock_create_response
     ):
@@ -183,8 +183,8 @@ class TestAPI(unittest.TestCase):
         mock_create_response.assert_called_with(error="Error parsing request", status_code=400)
         self.assertEqual(response.status_code, 400)
 
-    @patch("backend.src.api.create_response")
-    @patch("backend.src.api.parse_and_validate_request")
+    @patch("src.api.create_response")
+    @patch("src.api.parse_and_validate_request")
     def test_game_status_error_in_request_parsing(
         self, mock_parse_and_validate_request, mock_create_response
     ):
@@ -201,9 +201,9 @@ class TestAPI(unittest.TestCase):
         mock_create_response.assert_called_with(error="Error parsing request", status_code=400)
         self.assertEqual(response.status_code, 400)
 
-    @patch("backend.src.api.create_response")
-    @patch("backend.src.api.validate_id")
-    @patch("backend.src.api.parse_and_validate_request")
+    @patch("src.api.create_response")
+    @patch("src.api.validate_id")
+    @patch("src.api.parse_and_validate_request")
     def test_game_status_invalid_id(
         self, mock_parse_and_validate_request, mock_validate_id, mock_create_response
     ):
@@ -221,10 +221,10 @@ class TestAPI(unittest.TestCase):
         mock_create_response.assert_called_with(error="Invalid game ID.", status_code=404)
         self.assertEqual(response.status_code, 404)
 
-    @patch("backend.src.api.create_response")
-    @patch("backend.src.api.get_game_state")
-    @patch("backend.src.api.validate_id")
-    @patch("backend.src.api.parse_and_validate_request")
+    @patch("src.api.create_response")
+    @patch("src.api.get_game_state")
+    @patch("src.api.validate_id")
+    @patch("src.api.parse_and_validate_request")
     def test_game_status_valid_input(
         self,
         mock_parse_and_validate_request,
@@ -251,8 +251,8 @@ class TestAPI(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-    @patch("backend.src.api.create_response")
-    @patch("backend.src.api.parse_and_validate_request")
+    @patch("src.api.create_response")
+    @patch("src.api.parse_and_validate_request")
     def test_restart_game_error_in_request_parsing(
         self, mock_parse_and_validate_request, mock_create_response
     ):
@@ -267,9 +267,9 @@ class TestAPI(unittest.TestCase):
         mock_create_response.assert_called_with(error="Error parsing request", status_code=400)
         self.assertEqual(response.status_code, 400)
 
-    @patch("backend.src.api.create_response")
-    @patch("backend.src.api.validate_id")
-    @patch("backend.src.api.parse_and_validate_request")
+    @patch("src.api.create_response")
+    @patch("src.api.validate_id")
+    @patch("src.api.parse_and_validate_request")
     def test_restart_game_invalid_id(
         self, mock_parse_and_validate_request, mock_validate_id, mock_create_response
     ):
@@ -285,10 +285,10 @@ class TestAPI(unittest.TestCase):
         mock_create_response.assert_called_with(error="Invalid game ID.", status_code=404)
         self.assertEqual(response.status_code, 404)
 
-    @patch("backend.src.api.create_response")
-    @patch("backend.src.api.restart_game")
-    @patch("backend.src.api.validate_id")
-    @patch("backend.src.api.parse_and_validate_request")
+    @patch("src.api.create_response")
+    @patch("src.api.restart_game")
+    @patch("src.api.validate_id")
+    @patch("src.api.parse_and_validate_request")
     def test_restart_game_valid_request(
         self,
         mock_parse_and_validate_request,
