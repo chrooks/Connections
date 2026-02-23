@@ -26,18 +26,14 @@ git clone https://github.com/chrooks/Connections.git
 cd Connections
 ```
 
-2. **Set up the Python virtual environment**
-
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-pip install -r backend/requirements.txt
-```
-
-3. **Start the Flask backend**
+2. **Set up the Python virtual environment and start the backend Flask app**
 
 ```bash
 cd backend
+python3 -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+pip install uv             # fast dependency installer (one-time)
+uv pip install -r requirements.txt
 python -m src.app
 ```
 

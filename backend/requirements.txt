@@ -1,5 +1,6 @@
+anthropic>=0.40.0
 blinker==1.8.2
-supabase>=2.0.0
+supabase==2.15.1
 certifi==2024.2.2
 charset-normalizer==3.3.2
 click==8.1.7
@@ -23,7 +24,7 @@ pytest==8.2.0
 requests==2.31.0
 SQLAlchemy==2.0.30
 tomli==2.0.1
-typing-extensions==4.11.0
+typing-extensions==4.13.2
 urllib3==2.2.1
 werkzeug==3.0.3
 zipp==3.18.1

@@ -11,3 +11,6 @@ __pycache__/
 
 backend/connectionsdb.db
 .env
+
+# Puzzle generator smoke test output — runtime artifacts, not source
+backend/src/generation/smoke_test_*.txt

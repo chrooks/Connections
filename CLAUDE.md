@@ -28,6 +28,13 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 python -m src.app
 ```
 
+**Installing Python dependencies:**
+Always use `uv` instead of plain `pip` — it resolves and installs packages dramatically faster:
+```bash
+pip install uv          # one-time setup
+uv pip install -r requirements.txt
+```
+
 **Frontend:**
 ```bash
 cd frontend
