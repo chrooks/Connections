@@ -191,6 +191,7 @@ def generate_single_group(
     existing_groups: list[dict],
     words_per_group: int = 4,
     difficulty: str = "green",
+    category_hint: "str | None" = None,
 ) -> dict:
     """
     Generates one high-quality word group for a Connections puzzle.
@@ -207,6 +208,10 @@ def generate_single_group(
                          Pass an empty list when generating the first group.
         words_per_group: How many words the final group should contain (default 4).
         difficulty:      Target difficulty tier: "yellow" | "green" | "blue" | "purple".
+        category_hint:   Optional proposed category concept from the brainstorm step
+                         (e.g. "Beatles songs missing 'LOVE'"). When provided, Claude
+                         uses this as a starting point rather than inventing a concept
+                         from scratch, keeping Step 3 aligned with Step 2's plan.
 
     Returns:
         {
@@ -231,7 +236,7 @@ def generate_single_group(
         )
 
     # Build the prompt once — it doesn't change across retries.
-    prompt = _build_prompt(category_type, existing_groups, words_per_group, difficulty)
+    prompt = _build_prompt(category_type, existing_groups, words_per_group, difficulty, category_hint)
 
     # Initialise the client here (not at module level) so tests can patch the
     # environment variable without side effects at import time.
@@ -300,6 +305,7 @@ def _build_prompt(
     existing_groups: list[dict],
     words_per_group: int,
     difficulty: str,
+    category_hint: "str | None" = None,
 ) -> str:
     """
     Constructs the user message sent to Claude.
@@ -314,10 +320,14 @@ def _build_prompt(
         "",
         # Anti-cliché instruction — prevents the model from defaulting to the
         # safest/most common categories (days, seasons, months) on every run.
+        # Board games are explicitly listed because Monopoly properties and chess
+        # pieces are the new go-to easy categories once classic clichés are blocked.
         "AVOID OVERUSED CONNECTIONS THEMES:",
         "  Do not use: days of the week, seasons (spring/summer/fall/winter), months of the year,",
         "  primary colors, planets, cardinal directions, card suits, or broad taxonomies like",
         "  'Types of fruit' or 'US states'. These are the first things anyone thinks of.",
+        "  Also avoid: Monopoly properties, chess pieces, playing card ranks, dice games,",
+        "  or any other board game taxonomy. These have become the new default clichés.",
         "  Choose something more specific, surprising, or cross-domain.",
         "",
         f"CATEGORY TYPE: {_CATEGORY_TYPE_DESCRIPTIONS[category_type]}",
@@ -370,6 +380,18 @@ def _build_prompt(
             lines.append(f"  {i}. {name}: {words_str}")
     else:
         lines += ["", "EXISTING GROUPS: None — this is the first group."]
+
+    # If the pipeline brainstormed a specific concept, anchor Claude to it.
+    # Without this, generate_single_group() freely invents its own concept for
+    # the given category_type — leading to mismatches like "Beatles songs" ending
+    # up with Santa's reindeer words because the hint was silently discarded.
+    if category_hint:
+        lines += [
+            "",
+            f"PROPOSED CONCEPT: \"{category_hint}\"",
+            "  Use this as your starting point. You may refine the category_name wording,",
+            "  but the core concept and theme MUST remain the same.",
+        ]
 
     lines += [
         "",
