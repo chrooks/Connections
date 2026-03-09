@@ -15,3 +15,5 @@ backend/connectionsdb.db
 # Puzzle generator runtime artifacts — not source
 backend/src/generation/smoke_test_*.txt
 backend/src/generation/puzzle_gen_*.json
+
+.learning/

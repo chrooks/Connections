@@ -104,6 +104,7 @@ npm run dev
 
 ## Important Notes
 
+- **Update the knowledge journal** refer to user-level CLAUDE.md for instructions
 - **Do not bypass pre-commit hooks** with `--no-verify`
 - **Keep frontend and backend in sync** when changing APIs
 - **Test locally** before committing (run both servers)
