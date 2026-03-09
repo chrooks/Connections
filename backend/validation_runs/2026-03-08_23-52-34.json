@@ -1,0 +1,61 @@
+{
+  "timestamp": "2026-03-08_23-52-34",
+  "puzzle": [
+    {
+      "relationship": "Words meaning ORDINARY",
+      "words": [
+        "COMMON",
+        "PLAIN",
+        "REGULAR",
+        "EVERYDAY"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Slang for money",
+      "words": [
+        "BREAD",
+        "CHEDDAR",
+        "DOUGH",
+        "CABBAGE"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Words ending in -BACK",
+      "words": [
+        "FEEDBACK",
+        "PAYBACK",
+        "SETBACK",
+        "DRAWBACK"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Same forwards and backwards",
+      "words": [
+        "KAYAK",
+        "LEVEL",
+        "RADAR",
+        "CIVIC"
+      ],
+      "category_type": "members_of_set"
+    }
+  ],
+  "passed": false,
+  "score": 0.0401,
+  "embedding_score": 0.1003,
+  "llm_agreement_rate": 1.0,
+  "llm_difficulty_assessment": "too_easy",
+  "auto_fail_reasons": [
+    "Puzzle is trivially easy: Haiku solved it at temp=0 AND self-consistency agreement_rate 100.00% > 90%."
+  ],
+  "warnings": [
+    "Groups 'Words meaning ORDINARY' and 'Same forwards and backwards': separation ratio 1.46 is borderline (target \u2265 1.5)."
+  ],
+  "llm_token_usage": {
+    "total_input_tokens": 10228,
+    "total_output_tokens": 7144,
+    "api_calls": 10
+  }
+}

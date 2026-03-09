@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-03-08_23-58-18",
+  "puzzle": [
+    {
+      "relationship": "Luxurious fabrics",
+      "words": [
+        "VELVET",
+        "SILK",
+        "SATIN",
+        "SUEDE"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Follow ROCK",
+      "words": [
+        "STAR",
+        "SOLID",
+        "BOTTOM",
+        "SALT"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Synonyms for BREAKTHROUGH",
+      "words": [
+        "ADVANCE",
+        "LEAP",
+        "STRIKE",
+        "DEVELOPMENT"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "_____ PATTERN",
+      "words": [
+        "SLEEP",
+        "WEATHER",
+        "TRAFFIC",
+        "SEWING"
+      ],
+      "category_type": "members_of_set"
+    }
+  ],
+  "passed": false,
+  "score": 0.1441,
+  "embedding_score": 0.3603,
+  "llm_agreement_rate": 0.0,
+  "llm_difficulty_assessment": "hard_or_flawed",
+  "auto_fail_reasons": [
+    "Self-consistency agreement_rate 0.00% < 10% \u2014 puzzle may be unsolvable or deeply ambiguous."
+  ],
+  "warnings": [
+    "Groups 'Follow ROCK' and 'Synonyms for BREAKTHROUGH': separation ratio 1.33 is borderline (target \u2265 1.5).",
+    "Groups 'Follow ROCK' and '_____ PATTERN': separation ratio 1.33 is borderline (target \u2265 1.5).",
+    "Groups 'Synonyms for BREAKTHROUGH' and '_____ PATTERN': separation ratio 1.11 < 1.2 \u2014 potential ambiguity."
+  ],
+  "llm_token_usage": {
+    "total_input_tokens": 10184,
+    "total_output_tokens": 9734,
+    "api_calls": 10
+  }
+}

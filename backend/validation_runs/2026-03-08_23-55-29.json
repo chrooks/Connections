@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-03-08_23-55-29",
+  "puzzle": [
+    {
+      "relationship": "Words meaning WATCH",
+      "words": [
+        "NOTICE",
+        "SPOT",
+        "SEE",
+        "WITNESS"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "___ ROOM",
+      "words": [
+        "LIVING",
+        "SHOW",
+        "BOARD",
+        "BALL"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Slang for LOOK AT",
+      "words": [
+        "PEEP",
+        "CLOCK",
+        "CHECK",
+        "EYEBALL"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Types of curves in mathematics",
+      "words": [
+        "PARABOLA",
+        "HYPERBOLA",
+        "ELLIPSE",
+        "CATENARY"
+      ],
+      "category_type": "members_of_set"
+    }
+  ],
+  "passed": false,
+  "score": 0.136,
+  "embedding_score": 0.34,
+  "llm_agreement_rate": 0.0,
+  "llm_difficulty_assessment": "hard_or_flawed",
+  "auto_fail_reasons": [
+    "Self-consistency agreement_rate 0.00% < 10% \u2014 puzzle may be unsolvable or deeply ambiguous."
+  ],
+  "warnings": [
+    "Groups 'Words meaning WATCH' and '___ ROOM': separation ratio 1.06 < 1.2 \u2014 potential ambiguity.",
+    "Groups 'Words meaning WATCH' and 'Slang for LOOK AT': separation ratio 0.93 < 1.2 \u2014 potential ambiguity.",
+    "Groups '___ ROOM' and 'Slang for LOOK AT': separation ratio 0.98 < 1.2 \u2014 potential ambiguity."
+  ],
+  "llm_token_usage": {
+    "total_input_tokens": 10217,
+    "total_output_tokens": 9809,
+    "api_calls": 10
+  }
+}
