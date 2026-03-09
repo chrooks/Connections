@@ -1,0 +1,61 @@
+{
+  "timestamp": "2026-03-09_14-08-26",
+  "puzzle": [
+    {
+      "relationship": "People who perform on stage",
+      "words": [
+        "ACTOR",
+        "MIME",
+        "DANCER",
+        "SINGER"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Techniques for preserving food",
+      "words": [
+        "SMOKE",
+        "PICKLE",
+        "CAN",
+        "FREEZE"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Synonyms for MEANDER",
+      "words": [
+        "DRIFT",
+        "ROAM",
+        "STRAY",
+        "WANDER"
+      ],
+      "category_type": "synonyms"
+    },
+    {
+      "relationship": "Gothic cathedral architectural elements",
+      "words": [
+        "BUTTRESS",
+        "VAULT",
+        "ROSE",
+        "CHOIR"
+      ],
+      "category_type": "cultural_knowledge"
+    }
+  ],
+  "passed": false,
+  "score": 0.4542,
+  "embedding_score": 0.3106,
+  "llm_agreement_rate": 0.125,
+  "llm_difficulty_assessment": "hard_or_flawed",
+  "auto_fail_reasons": [],
+  "warnings": [
+    "Groups 'People who perform on stage' and 'Gothic cathedral architectural elements': separation ratio 1.26 is borderline (target \u2265 1.5).",
+    "Groups 'Techniques for preserving food' and 'Gothic cathedral architectural elements': separation ratio 1.17 < 1.2 \u2014 potential ambiguity.",
+    "Haiku got 0 group(s) correct at temp=0 \u2014 consider whether the puzzle is appropriately hard or structurally flawed."
+  ],
+  "llm_token_usage": {
+    "total_input_tokens": 10187,
+    "total_output_tokens": 9760,
+    "api_calls": 10
+  }
+}

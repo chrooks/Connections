@@ -1,0 +1,61 @@
+{
+  "timestamp": "2026-03-09_12-21-10",
+  "puzzle": [
+    {
+      "relationship": "TIDAL ___",
+      "words": [
+        "WAVE",
+        "POOL",
+        "STREAM",
+        "BORE"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Pricey spices and seasonings",
+      "words": [
+        "SAFFRON",
+        "CLOVE",
+        "VANILLA",
+        "MACE"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Words meaning METICULOUS",
+      "words": [
+        "PAINSTAKING",
+        "SCRUPULOUS",
+        "RIGOROUS",
+        "EXACTING"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "___ WAVE",
+      "words": [
+        "HEAT",
+        "CRIME",
+        "SHOCK",
+        "BRAIN"
+      ],
+      "category_type": "members_of_set"
+    }
+  ],
+  "passed": false,
+  "score": 0.419,
+  "embedding_score": 0.2225,
+  "llm_agreement_rate": 0.25,
+  "llm_difficulty_assessment": "hard_or_flawed",
+  "auto_fail_reasons": [],
+  "warnings": [
+    "Groups 'TIDAL ___' and '___ WAVE': separation ratio 1.09 < 1.2 \u2014 potential ambiguity.",
+    "Groups 'Pricey spices and seasonings' and '___ WAVE': separation ratio 1.33 is borderline (target \u2265 1.5).",
+    "Haiku got 0 group(s) correct at temp=0 \u2014 consider whether the puzzle is appropriately hard or structurally flawed."
+  ],
+  "llm_token_usage": {
+    "total_input_tokens": 10254,
+    "total_output_tokens": 9698,
+    "api_calls": 10
+  }
+}

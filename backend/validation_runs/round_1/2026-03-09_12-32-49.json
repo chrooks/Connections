@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-03-09_12-32-49",
+  "puzzle": [
+    {
+      "relationship": "Luxurious fabrics",
+      "words": [
+        "SILK",
+        "VELVET",
+        "SUEDE",
+        "SATIN"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "___CASE",
+      "words": [
+        "BRIEF",
+        "UPPER",
+        "BOOK",
+        "SUIT"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Slang for money",
+      "words": [
+        "BREAD",
+        "DOUGH",
+        "CHEDDAR",
+        "SCRATCH"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "___ PRESSED",
+      "words": [
+        "HARD",
+        "COLD",
+        "IM",
+        "EX"
+      ],
+      "category_type": "members_of_set"
+    }
+  ],
+  "passed": false,
+  "score": 0.103,
+  "embedding_score": 0.2574,
+  "llm_agreement_rate": 0.0,
+  "llm_difficulty_assessment": "hard_or_flawed",
+  "auto_fail_reasons": [
+    "Self-consistency agreement_rate 0.00% < 10% \u2014 puzzle may be unsolvable or deeply ambiguous."
+  ],
+  "warnings": [
+    "Groups '___CASE' and '___ PRESSED': separation ratio 1.23 is borderline (target \u2265 1.5).",
+    "Groups 'Slang for money' and '___ PRESSED': separation ratio 1.47 is borderline (target \u2265 1.5)."
+  ],
+  "llm_token_usage": {
+    "total_input_tokens": 10204,
+    "total_output_tokens": 9955,
+    "api_calls": 10
+  }
+}

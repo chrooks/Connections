@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-03-09_12-50-01",
+  "puzzle": [
+    {
+      "relationship": "Follow \"ROCK\"",
+      "words": [
+        "HARD",
+        "STAR",
+        "CANDY",
+        "SOLID"
+      ],
+      "category_type": "fill_in_the_blank"
+    },
+    {
+      "relationship": "Synonyms for GUIDE (verb)",
+      "words": [
+        "STEER",
+        "LEAD",
+        "DIRECT",
+        "SHEPHERD"
+      ],
+      "category_type": "synonyms"
+    },
+    {
+      "relationship": "___ TALE",
+      "words": [
+        "FAIRY",
+        "TALL",
+        "FOLK",
+        "TELL"
+      ],
+      "category_type": "fill_in_the_blank"
+    },
+    {
+      "relationship": "Homophones of letters",
+      "words": [
+        "ARE",
+        "QUEUE",
+        "WHY",
+        "SEA"
+      ],
+      "category_type": "wordplay"
+    }
+  ],
+  "passed": false,
+  "score": 0.2391,
+  "embedding_score": 0.5978,
+  "llm_agreement_rate": 0.0,
+  "llm_difficulty_assessment": "hard_or_flawed",
+  "auto_fail_reasons": [
+    "Self-consistency agreement_rate 0.00% < 10% \u2014 puzzle may be unsolvable or deeply ambiguous."
+  ],
+  "warnings": [],
+  "llm_token_usage": {
+    "total_input_tokens": 10144,
+    "total_output_tokens": 9761,
+    "api_calls": 10
+  }
+}

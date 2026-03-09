@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-03-09_14-02-07",
+  "puzzle": [
+    {
+      "relationship": "Varieties found in a salad bar",
+      "words": [
+        "ICEBERG",
+        "ROMAINE",
+        "ARUGULA",
+        "BIBB"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Slang for money",
+      "words": [
+        "BREAD",
+        "DOUGH",
+        "CABBAGE",
+        "LETTUCE"
+      ],
+      "category_type": "synonyms"
+    },
+    {
+      "relationship": "___ BREAK",
+      "words": [
+        "DAY",
+        "FAST",
+        "WIND",
+        "PRISON"
+      ],
+      "category_type": "compound_words"
+    },
+    {
+      "relationship": "Poker hand rankings",
+      "words": [
+        "FLUSH",
+        "STRAIGHT",
+        "PAIR",
+        "FULL"
+      ],
+      "category_type": "cultural_knowledge"
+    }
+  ],
+  "passed": true,
+  "score": 0.6067,
+  "embedding_score": 0.4668,
+  "llm_agreement_rate": 0.75,
+  "llm_difficulty_assessment": "too_easy",
+  "auto_fail_reasons": [],
+  "warnings": [
+    "Groups 'Varieties found in a salad bar' and 'Slang for money': separation ratio 1.11 < 1.2 \u2014 potential ambiguity."
+  ],
+  "llm_token_usage": {
+    "total_input_tokens": 10229,
+    "total_output_tokens": 8623,
+    "api_calls": 10
+  }
+}

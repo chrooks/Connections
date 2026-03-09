@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-03-09_12-58-43",
+  "puzzle": [
+    {
+      "relationship": "ROCK ___",
+      "words": [
+        "STAR",
+        "CONCERT",
+        "SLIDE",
+        "SALT"
+      ],
+      "category_type": "compound_words"
+    },
+    {
+      "relationship": "Types of fabric",
+      "words": [
+        "DENIM",
+        "LINEN",
+        "VELVET",
+        "SATIN"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Classic ballet positions and steps",
+      "words": [
+        "PLI\u00c9",
+        "ARABESQUE",
+        "PIROUETTE",
+        "RELEV\u00c9"
+      ],
+      "category_type": "cultural_knowledge"
+    },
+    {
+      "relationship": "Can follow \"BREAK THE\"",
+      "words": [
+        "ICE",
+        "BANK",
+        "NEWS",
+        "RECORD"
+      ],
+      "category_type": "cultural_knowledge"
+    }
+  ],
+  "passed": false,
+  "score": 0.5533,
+  "embedding_score": 0.3333,
+  "llm_agreement_rate": 0.25,
+  "llm_difficulty_assessment": "too_easy",
+  "auto_fail_reasons": [],
+  "warnings": [],
+  "llm_token_usage": {
+    "total_input_tokens": 10228,
+    "total_output_tokens": 9133,
+    "api_calls": 10
+  }
+}

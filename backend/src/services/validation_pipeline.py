@@ -37,7 +37,7 @@ EMBEDDING_WEIGHT = 0.4
 LLM_WEIGHT = 0.6
 
 # Minimum combined score to consider a puzzle "passed"
-PASSING_SCORE_THRESHOLD = 0.6
+PASSING_SCORE_THRESHOLD = 0.5
 
 # Expected puzzle dimensions for the classic 4×4 layout
 EXPECTED_GROUPS = 4

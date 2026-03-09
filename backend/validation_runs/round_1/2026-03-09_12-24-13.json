@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-03-09_12-24-13",
+  "puzzle": [
+    {
+      "relationship": "Words meaning ENLARGE",
+      "words": [
+        "BLOW UP",
+        "BALLOON",
+        "SWELL",
+        "INFLATE"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "___ BACK",
+      "words": [
+        "CALL",
+        "CUT",
+        "FLASH",
+        "SNAP"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Follows SHOOTING",
+      "words": [
+        "STAR",
+        "GUARD",
+        "IRON",
+        "SCRIPT"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Luxury car brands",
+      "words": [
+        "BENTLEY",
+        "TESLA",
+        "LEXUS",
+        "INFINITI"
+      ],
+      "category_type": "members_of_set"
+    }
+  ],
+  "passed": false,
+  "score": 0.0814,
+  "embedding_score": 0.2035,
+  "llm_agreement_rate": 0.0,
+  "llm_difficulty_assessment": "hard_or_flawed",
+  "auto_fail_reasons": [
+    "Self-consistency agreement_rate 0.00% < 10% \u2014 puzzle may be unsolvable or deeply ambiguous."
+  ],
+  "warnings": [
+    "Groups 'Words meaning ENLARGE' and '___ BACK': separation ratio 1.40 is borderline (target \u2265 1.5).",
+    "Groups '___ BACK' and 'Follows SHOOTING': separation ratio 1.14 < 1.2 \u2014 potential ambiguity.",
+    "Groups 'Follows SHOOTING' and 'Luxury car brands': separation ratio 1.46 is borderline (target \u2265 1.5)."
+  ],
+  "llm_token_usage": {
+    "total_input_tokens": 10192,
+    "total_output_tokens": 9742,
+    "api_calls": 10
+  }
+}

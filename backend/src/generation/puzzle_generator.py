@@ -8,7 +8,10 @@ Each step calls Claude at a different temperature calibrated to its task:
                      prevent thematic repetition across pipeline runs.
   Step 2 (temp=0.9): Category Brainstorm — 6-8 candidate themes; select best N.
   Step 3 (varies):   Iterative Group Building — generate_single_group() per category.
-  Step 4 (temp=0.7): Red Herring Refinement — swap words to maximise misdirection.
+  Step 3.5 (free):   Embedding Bridge Analysis — run embedding validator to identify
+                     words that sit between groups in semantic space ("bridge words").
+  Step 4 (temp=0.7): Red Herring Refinement — swap words to maximise misdirection,
+                     prioritising replacement of bridge words flagged in Step 3.5.
   Step 5:            Final Assembly — package into puzzle dict for seed_puzzle_to_pool().
 
 Token tracking note: steps 1, 2, and 4 call Claude directly so input/output token
@@ -371,6 +374,7 @@ def _step2_category_brainstorm(
     difficulty_profile: str,
     num_groups: int,
     theme_hint: Optional[str],
+    recent_categories: "list[str] | None" = None,
 ) -> Optional[tuple[list[dict], list[dict]]]:
     """
     Step 2 — Category Brainstorm (temp=0.9).
@@ -421,7 +425,14 @@ def _step2_category_brainstorm(
         "     Two categories from the same narrow semantic space (e.g. both 'surface\n"
         "     textures', both 'American team sports positions', both 'cooking verbs')\n"
         "     cause word-level ambiguity that makes the puzzle harder to solve fairly.\n\n"
-        "HARD RULES — violating any of these disqualifies a candidate:\n"
+        + (
+            "RECENTLY USED CATEGORIES — avoid these and anything closely related "
+            "(same theme under a different name counts as the same):\n"
+            + "\n".join(f"  - {name}" for name in recent_categories)
+            + "\n\n"
+            if recent_categories else ""
+        )
+        + "HARD RULES — violating any of these disqualifies a candidate:\n"
         "  - SEED WORDS ARE INSPIRATION ONLY. Do NOT build a category whose primary subject\n"
         "    IS a seed word. If TRUMPET is a seed, 'brass instruments' is banned. If BISHOP\n"
         "    is a seed, 'chess pieces' and 'religious leaders' are banned. Use the seed story's\n"
@@ -702,17 +713,121 @@ def _step3_build_groups(
     return groups
 
 
+def _fetch_recent_category_names(limit: int = 80) -> list[str]:
+    """
+    Queries Supabase for the most recently generated category names.
+
+    Returns the last `limit` category names (across ~limit/4 puzzles) so the
+    Step 2 prompt can tell Claude which themes have already been used recently.
+    Silently returns an empty list if Supabase is unavailable — the static
+    blocklist in the prompt still applies.
+
+    Args:
+        limit: Maximum number of category names to fetch. Default 80 covers
+               ~20 puzzles × 4 groups each, a reasonable recency window.
+    """
+    try:
+        from ..services.puzzle_pool_service import _get_client
+        supabase = _get_client()
+
+        # Try ordered by recency first; fall back to unordered if created_at
+        # hasn't been added to the table yet.
+        try:
+            result = (
+                supabase.table("puzzle_groups")
+                .select("category_name")
+                .order("created_at", desc=True)
+                .limit(limit)
+                .execute()
+            )
+        except Exception:
+            logger.warning(
+                "puzzle_groups.created_at not found — fetching without recency ordering. "
+                "Run: ALTER TABLE puzzle_groups ADD COLUMN created_at timestamptz DEFAULT now();"
+            )
+            result = (
+                supabase.table("puzzle_groups")
+                .select("category_name")
+                .limit(limit)
+                .execute()
+            )
+
+        names = [row["category_name"] for row in result.data if row.get("category_name")]
+        logger.info(
+            "Fetched %d recent category name(s) from Supabase for Step 2 history injection.",
+            len(names),
+        )
+        return names
+    except Exception as exc:
+        logger.warning(
+            "Could not fetch recent category names from Supabase (%s) — "
+            "Step 2 will rely on the static blocklist only.",
+            exc,
+        )
+        return []
+
+
+def _step3_5_embedding_analysis(groups: list[dict]) -> list[dict]:
+    """
+    Step 3.5 — Embedding Bridge Analysis (free, local model).
+
+    Runs the embedding validator on the freshly-built groups and extracts any
+    bridge words — words that sit semantically close to a group they don't belong
+    to. These are passed to Step 4 so Claude prioritises replacing them over words
+    that are already well-placed.
+
+    Returns an empty list on any failure so the pipeline always continues.
+    """
+    logger.info("Step 3.5 — Embedding bridge analysis …")
+    try:
+        from ..services.embedding_validator import validate_puzzle_embeddings
+
+        puzzle_data = {
+            "connections": [
+                {
+                    "relationship": g["category_name"],
+                    "words": g["words"],
+                    "category_type": g.get("category_type", "members_of_set"),
+                }
+                for g in groups
+            ]
+        }
+        report = validate_puzzle_embeddings(puzzle_data)
+        bridge_words: list[dict] = report.get("bridge_words", [])
+
+        if bridge_words:
+            logger.info(
+                "Step 3.5: %d bridge word(s) flagged — %s",
+                len(bridge_words),
+                ", ".join(f"'{bw['word']}' ({bw['own_group']} ↔ {bw['closest_other_group']})"
+                          for bw in bridge_words),
+            )
+        else:
+            logger.info("Step 3.5: no bridge words flagged.")
+
+        return bridge_words
+
+    except Exception as exc:
+        logger.warning(
+            "Step 3.5: embedding analysis failed (%s) — Step 4 will proceed without bridge word data.",
+            exc,
+        )
+        return []
+
+
 def _step4_red_herring_refinement(
     client: anthropic.Anthropic,
     tracker: _TokenTracker,
     groups: list[dict],
+    bridge_words: "list[dict] | None" = None,
 ) -> tuple[list[dict], str]:
     """
     Step 4 — Red Herring Refinement (temp=0.7).
 
     Presents the complete puzzle to Claude and asks it to:
       1. Identify existing cross-group red herrings and rate their strength.
-      2. Suggest up to 3 word swaps (new_word must come from candidate_words).
+      2. Suggest up to 3 word swaps (new_word must come from candidate_words),
+         prioritising replacement of bridge words flagged by Step 3.5.
       3. Flag any words that feel too obscure or ambiguous.
 
     Applies only valid swaps — new_word must appear in the group's candidate_words
@@ -730,10 +845,30 @@ def _step4_red_herring_refinement(
         for i, g in enumerate(groups)
     )
 
+    # If Step 3.5 flagged bridge words, surface them explicitly so Claude knows
+    # which swaps will have the most impact on solvability.
+    if bridge_words:
+        bridge_lines = "\n".join(
+            f"  - {bw['word']} (in '{bw['own_group']}') — "
+            f"embedding also pulls toward '{bw['closest_other_group']}' "
+            f"(ratio {bw['cross_to_own_ratio']:.2f})"
+            for bw in bridge_words
+        )
+        bridge_section = (
+            "\nBRIDGE WORDS (flagged by semantic analysis — these words sit between "
+            "groups in embedding space and are likely to cause solver confusion):\n"
+            f"{bridge_lines}\n"
+            "When suggesting swaps, PRIORITISE replacing these words with alternatives "
+            "from the candidate pool that are more exclusively associated with their group.\n"
+        )
+    else:
+        bridge_section = ""
+
     prompt = (
         "You are reviewing a NYT Connections puzzle for cross-group misdirection quality.\n\n"
         "CURRENT PUZZLE:\n"
-        f"{groups_description}\n\n"
+        f"{groups_description}\n"
+        f"{bridge_section}\n"
         "Your three tasks:\n\n"
         "1. IDENTIFY existing red herrings — words in one group that a player might "
         "plausibly assign to a different group. Rate each as weak/moderate/strong.\n\n"
@@ -829,6 +964,7 @@ def _step5_assemble(
             "words": g["words"],
             "difficulty_rank": g["difficulty_rank"],
             "sort_order": i,
+            "category_type": g["category_type"],
         }
         for i, g in enumerate(sorted_groups)
     ]
@@ -946,9 +1082,11 @@ def generate_puzzle(config: Optional[dict] = None) -> Optional[dict]:
     seed_story = seed_result["story"]
 
     # --- Step 2: Category Brainstorm ---
+    recent_categories = _fetch_recent_category_names()
     brainstorm_result = _step2_category_brainstorm(
         client, tracker, seed_story, seed_words,
         difficulty_profile, num_groups, theme_hint,
+        recent_categories=recent_categories,
     )
     if brainstorm_result is None:
         logger.error("generate_puzzle: Step 2 failed — aborting")
@@ -961,9 +1099,12 @@ def generate_puzzle(config: Optional[dict] = None) -> Optional[dict]:
         logger.error("generate_puzzle: Step 3 failed — aborting")
         return None
 
+    # --- Step 3.5: Embedding Bridge Analysis ---
+    bridge_words = _step3_5_embedding_analysis(groups)
+
     # --- Step 4: Red Herring Refinement ---
     refined_groups, red_herring_analysis = _step4_red_herring_refinement(
-        client, tracker, groups
+        client, tracker, groups, bridge_words=bridge_words
     )
 
     # --- Step 5: Final Assembly ---

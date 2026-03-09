@@ -1,0 +1,62 @@
+{
+  "timestamp": "2026-03-09_12-29-42",
+  "puzzle": [
+    {
+      "relationship": "Common kitchen spices",
+      "words": [
+        "SAGE",
+        "PAPRIKA",
+        "OREGANO",
+        "THYME"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "___ WATER",
+      "words": [
+        "ROSE",
+        "SALT",
+        "SPRING",
+        "TONIC"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Synonyms for REVERBERATE",
+      "words": [
+        "CHIME",
+        "RING",
+        "REECHO",
+        "RESONATE"
+      ],
+      "category_type": "members_of_set"
+    },
+    {
+      "relationship": "Words that can follow RUBBER",
+      "words": [
+        "STAMP",
+        "CHECK",
+        "BAND",
+        "CEMENT"
+      ],
+      "category_type": "members_of_set"
+    }
+  ],
+  "passed": false,
+  "score": 0.5788,
+  "embedding_score": 0.397,
+  "llm_agreement_rate": 0.375,
+  "llm_difficulty_assessment": "too_easy",
+  "auto_fail_reasons": [],
+  "warnings": [
+    "Groups 'Common kitchen spices' and '___ WATER': separation ratio 1.16 < 1.2 \u2014 potential ambiguity.",
+    "Groups '___ WATER' and 'Synonyms for REVERBERATE': separation ratio 1.20 < 1.2 \u2014 potential ambiguity.",
+    "Groups '___ WATER' and 'Words that can follow RUBBER': separation ratio 1.06 < 1.2 \u2014 potential ambiguity.",
+    "Groups 'Synonyms for REVERBERATE' and 'Words that can follow RUBBER': separation ratio 1.09 < 1.2 \u2014 potential ambiguity."
+  ],
+  "llm_token_usage": {
+    "total_input_tokens": 10208,
+    "total_output_tokens": 9196,
+    "api_calls": 10
+  }
+}
