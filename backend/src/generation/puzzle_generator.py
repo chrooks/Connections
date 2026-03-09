@@ -682,6 +682,7 @@ def _step3_build_groups(
             "design_notes": raw_group.get("design_notes", ""),
             "difficulty": category["difficulty"],
             "difficulty_rank": _DIFFICULTY_TO_RANK[category["difficulty"]],
+            "category_type": category["category_type"],
         }
         groups.append(assembled)
 
@@ -895,7 +896,8 @@ def generate_puzzle(config: Optional[dict] = None) -> Optional[dict]:
         if puzzle:
             seed_data = {
                 "connections": [
-                    {"relationship": g["category_name"], "words": g["words"]}
+                    {"relationship": g["category_name"], "words": g["words"],
+                     "category_type": g["category_type"]}
                     for g in puzzle["groups"]
                 ],
             }
@@ -1043,7 +1045,8 @@ if __name__ == "__main__":
 
         seed_data = {
             "connections": [
-                {"relationship": g["category_name"], "words": g["words"]}
+                {"relationship": g["category_name"], "words": g["words"],
+                 "category_type": g["category_type"]}
                 for g in puzzle["groups"]
             ],
         }
