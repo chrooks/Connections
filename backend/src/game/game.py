@@ -17,10 +17,63 @@ Functions:
 
 import logging
 import random
+import threading
 from os import path
 import json
 
 logger = logging.getLogger(__name__)
+
+# Trigger replenishment when the approved pool drops below this count.
+_POOL_LOW_WATER_MARK = 10
+# Queue enough jobs to reach this target (halfway to pool_monitor's 50).
+_POOL_REPLENISHMENT_TARGET = 30
+
+
+def _replenish_pool_async(config_name: str) -> None:
+    """
+    Fire-and-forget pool health check.  Runs in a daemon thread so it never
+    blocks the HTTP response.  If approved puzzles have dropped below
+    _POOL_LOW_WATER_MARK, queues enough generation jobs to reach
+    _POOL_REPLENISHMENT_TARGET.
+
+    All errors are swallowed — this is best-effort monitoring only.
+    """
+    try:
+        from ..services.puzzle_pool_service import get_pool_stats, _get_client
+
+        stats = get_pool_stats(config_name)
+        approved = stats.get("approved", 0)
+
+        if approved >= _POOL_LOW_WATER_MARK:
+            return  # pool is healthy
+
+        logger.warning(
+            "Pool '%s' is low (%d approved < %d threshold) — queueing replenishment jobs",
+            config_name, approved, _POOL_LOW_WATER_MARK,
+        )
+
+        client = _get_client()
+        cfg = (
+            client.table("puzzle_configs")
+            .select("id")
+            .eq("name", config_name)
+            .single()
+            .execute()
+        )
+        if not cfg.data:
+            logger.warning("Unknown puzzle config '%s' — cannot replenish", config_name)
+            return
+
+        needed = max(0, _POOL_REPLENISHMENT_TARGET - approved)
+        if needed == 0:
+            return
+
+        rows = [{"config_id": cfg.data["id"], "status": "queued"} for _ in range(needed)]
+        client.table("puzzle_generation_jobs").insert(rows).execute()
+        logger.info("Queued %d replenishment jobs for config '%s'", needed, config_name)
+
+    except Exception:
+        logger.warning("Pool replenishment check failed", exc_info=True)
 
 from ..services.game_session_service import (
     add_new_game,
@@ -76,6 +129,15 @@ def generate_game_grid() -> "tuple[list[str], list[dict], str | None]":
 
         random.shuffle(grid)
         logger.info("Generated game grid from puzzle pool (%d groups)", len(connections))
+
+        # Non-blocking: check pool level and queue replenishment jobs if needed.
+        # Runs in a daemon thread so it never delays the HTTP response.
+        threading.Thread(
+            target=_replenish_pool_async,
+            args=("classic",),
+            daemon=True,
+        ).start()
+
         return grid, connections, puzzle_id
 
     except ImportError:

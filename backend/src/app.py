@@ -20,6 +20,7 @@ from flask import Flask
 load_dotenv()
 from flask_cors import CORS
 from .blueprints.api.routes import api_bp
+from .blueprints.admin.routes import admin_bp
 from .services.utils import create_response
 
 
@@ -27,6 +28,7 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
     app.register_blueprint(api_bp, url_prefix="/connections")
+    app.register_blueprint(admin_bp, url_prefix="/admin")
 
     @app.route("/")
     def index():

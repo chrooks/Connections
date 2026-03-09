@@ -339,6 +339,126 @@ def seed_puzzle_to_pool(
     return puzzle_id
 
 
+def _fetch_puzzle_connections(puzzle_id: str, supabase=None) -> list[dict]:
+    """
+    Fetches groups + words for any puzzle regardless of status.
+
+    Returns a list of connection dicts compatible with game_session_service:
+        [{"relationship": "...", "words": [...], "guessed": False}, ...]
+
+    Raises:
+        ValueError: puzzle_id not found or has no groups.
+    """
+    client = supabase or _get_client()
+    result = (
+        client.table("puzzle_groups")
+        .select("category_name, sort_order, puzzle_words(word, display_text)")
+        .eq("puzzle_id", puzzle_id)
+        .order("sort_order")
+        .execute()
+    )
+    if not result.data:
+        raise ValueError(
+            f"Puzzle {puzzle_id} not found or has no groups."
+        )
+    return [
+        {
+            "relationship": g["category_name"],
+            "words": [pw.get("display_text") or pw["word"] for pw in g["puzzle_words"]],
+            "guessed": False,
+        }
+        for g in result.data
+    ]
+
+
+def get_rejected_puzzles(
+    config_name: str = "classic",
+    limit: int = 50,
+) -> list[dict]:
+    """
+    Returns rejected puzzles with their content, validation score, and fail reasons.
+
+    Each item includes the puzzle words so you can review them before deciding
+    whether to start a review game or leave them rejected.
+
+    Args:
+        config_name: Pool config slug to filter by (default "classic").
+        limit:       Maximum number of puzzles to return, most recent first.
+
+    Returns:
+        List of dicts:
+        [
+            {
+                "puzzle_id":        str,
+                "validation_score": float | None,
+                "auto_fail_reasons": list[str],
+                "warnings":         list[str],
+                "created_at":       str,
+                "groups": [
+                    {"relationship": str, "words": [str, str, str, str]},
+                    ...
+                ],
+            },
+            ...
+        ]
+    """
+    supabase = _get_client()
+    config_id = _get_config_id(supabase, config_name)
+
+    result = (
+        supabase.table("puzzles")
+        .select("id, validation_score, validation_report, created_at")
+        .eq("config_id", config_id)
+        .eq("status", "rejected")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+
+    puzzles = []
+    for row in (result.data or []):
+        report = row.get("validation_report") or {}
+        try:
+            connections = _fetch_puzzle_connections(row["id"], supabase)
+        except ValueError:
+            connections = []
+
+        puzzles.append({
+            "puzzle_id": row["id"],
+            "validation_score": row.get("validation_score"),
+            "auto_fail_reasons": report.get("auto_fail_reasons", []),
+            "warnings": report.get("warnings", []),
+            "created_at": row["created_at"],
+            "groups": [
+                {"relationship": c["relationship"], "words": c["words"]}
+                for c in connections
+            ],
+        })
+
+    return puzzles
+
+
+def manually_approve_puzzle(puzzle_id: str) -> None:
+    """
+    Force-approves a puzzle, overriding the validation pipeline decision.
+
+    Intended for human review of borderline or incorrectly rejected puzzles.
+    Sets status to 'approved' and records the current timestamp as approved_at.
+    The existing validation_score and validation_report are preserved for audit.
+
+    Args:
+        puzzle_id: UUID of the puzzle to approve (any status accepted).
+    """
+    supabase = _get_client()
+
+    supabase.table("puzzles").update({
+        "status": "approved",
+        "approved_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", puzzle_id).execute()
+
+    logger.info("Manually approved puzzle %s (human override)", puzzle_id)
+
+
 def approve_puzzle(
     puzzle_id: str,
     validation_score: float,
@@ -371,22 +491,32 @@ def approve_puzzle(
     logger.info("Approved puzzle %s (validation_score=%.3f)", puzzle_id, validation_score)
 
 
-def reject_puzzle(puzzle_id: str, validation_report: dict) -> None:
+def reject_puzzle(
+    puzzle_id: str,
+    validation_report: dict,
+    validation_score: float = 0.0,
+) -> None:
     """
     Transitions a puzzle to 'rejected', permanently excluding it from the pool.
 
     Rejected puzzles are never served. The validation_report should explain
     which checks failed so the generation pipeline can be tuned accordingly.
+    validation_score is stored even for rejections so quality trends can be
+    compared across approved and rejected puzzles.
 
     Args:
         puzzle_id:         UUID of the puzzle to reject.
         validation_report: Structured dict explaining which checks failed and why.
+        validation_score:  Composite quality score at time of rejection (0–1).
     """
     supabase = _get_client()
 
     supabase.table("puzzles").update({
         "status": "rejected",
+        "validation_score": validation_score,
         "validation_report": validation_report,
     }).eq("id", puzzle_id).execute()
 
-    logger.info("Rejected puzzle %s", puzzle_id)
+    logger.info(
+        "Rejected puzzle %s (validation_score=%.3f)", puzzle_id, validation_score
+    )

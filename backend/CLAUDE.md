@@ -2,192 +2,247 @@
 
 ## Stack
 
-- **Language:** Python 3.6+
+- **Language:** Python 3.10+
 - **Framework:** Flask
-- **Database:** SQLite (connectionsdb.db)
+- **Database:** Supabase (PostgreSQL) — accessed via `supabase-py`
+- **LLM:** Anthropic API (`anthropic` SDK) — Claude Opus 4.6 / Sonnet 4.6
 - **Virtual Environment:** `.venv/`
 
 ## Project Structure
 
 ```
-/src/           - Main application code
-/tests/         - Test files
-/schemas/       - Database schemas
-requirements.txt - Python dependencies
+backend/
+├── src/
+│   ├── app.py                    # Flask app factory, blueprint registration
+│   ├── blueprints/
+│   │   ├── api/routes.py         # Game endpoints (/connections/...)
+│   │   └── admin/routes.py       # Admin endpoints (/admin/...)
+│   ├── game/game.py              # Core game logic (guesses, win/loss)
+│   ├── dal/                      # Data access layer (Supabase queries)
+│   ├── generation/
+│   │   ├── group_generator.py    # Generates individual word groups (Claude)
+│   │   ├── puzzle_generator.py   # Multi-step pipeline: seed → brainstorm → refine
+│   │   └── batch_generator.py    # Batch API path: single-shot, 50% cheaper
+│   ├── services/
+│   │   ├── puzzle_pool_service.py  # Pool management: fetch, seed, approve
+│   │   ├── usage_tracker.py        # Record Anthropic token usage + cost
+│   │   ├── validation_pipeline.py  # Embedding + LLM validation of candidates
+│   │   ├── embedding_validator.py  # Cosine similarity checks
+│   │   ├── llm_validator.py        # Claude-based ambiguity/quality review
+│   │   └── game_session_service.py # Game session CRUD
+│   ├── workers/
+│   │   ├── worker.py             # Background generation worker (polls job queue)
+│   │   ├── pool_monitor.py       # Daemon that triggers refill when pool runs low
+│   │   └── run_workers.py        # Entry point: starts worker + monitor threads
+│   └── auth/middleware.py        # Supabase JWT validation
+├── supabase/
+│   └── migrations/               # SQL migration files (apply in order)
+│       ├── 20260210000000_puzzle_pool.sql
+│       ├── 20260224000000_game_sessions.sql
+│       └── 20260309000000_api_usage.sql
+├── tests/                        # pytest test suite
+└── requirements.txt
 ```
 
 ## Development Setup
 
-### Environment Setup
+### 1. Activate the virtual environment
 
-1. **Activate virtual environment:**
-   ```bash
-   source .venv/bin/activate  # Windows: .venv\Scripts\activate
-   ```
+```bash
+source .venv/bin/activate       # Windows: .venv\Scripts\activate
+```
 
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 2. Install dependencies
 
-3. **Configure environment:**
-   - Copy `.env.example` to `.env`
-   - Fill in required environment variables
-   - **Never commit `.env` to version control**
+Always use `uv` — it's dramatically faster than plain pip:
 
-### Running the Server
+```bash
+pip install uv          # one-time setup
+uv pip install -r requirements.txt
+```
+
+### 3. Configure environment
+
+```bash
+cp .env.example .env
+# Fill in: SUPABASE_URL, SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY
+```
+
+### 4. Apply database migrations
+
+Run each SQL file against your Supabase project in chronological order:
+
+```bash
+# Via Supabase CLI:
+supabase db push
+
+# Or directly via psql:
+psql "$DATABASE_URL" -f supabase/migrations/20260210000000_puzzle_pool.sql
+psql "$DATABASE_URL" -f supabase/migrations/20260224000000_game_sessions.sql
+psql "$DATABASE_URL" -f supabase/migrations/20260309000000_api_usage.sql
+```
+
+### 5. Start the Flask server
 
 ```bash
 python -m src.app
 ```
 
-The server runs on `localhost:5000` by default.
+Runs at `http://localhost:5000`.
+
+## Running the Generation System
+
+### Background worker (quality path)
+
+The worker polls `puzzle_generation_jobs` and runs the multi-step generation pipeline:
+
+```bash
+python -m src.workers.run_workers
+```
+
+This starts two threads:
+- **Worker thread** — claims and processes queued generation jobs
+- **Pool monitor thread** — watches pool depth; triggers a fill when it drops below threshold
+
+Both are daemon threads — they shut down automatically when you `Ctrl+C` the main process.
+
+Trigger a generation run via the admin endpoint (worker must be running):
+
+```bash
+curl -X POST http://localhost:5000/admin/generate-puzzles \
+  -H "Content-Type: application/json" \
+  -d '{"count": 5, "config_name": "classic"}'
+```
+
+### Batch generator (volume/nightly path)
+
+Skips the multi-step pipeline; uses the Anthropic Batch API (50% cost reduction).
+Blocks until the batch completes (up to 1 hour):
+
+```python
+from backend.src.generation.batch_generator import run_batch_fill
+
+result = run_batch_fill(count=20, config_name="classic")
+# {"submitted": 20, "succeeded": 17, "failed": 3, "puzzle_ids": [...]}
+```
+
+Use this for nightly restocking — not for on-demand requests where quality matters.
+
+### Comparing the two paths
+
+| | Worker pipeline | Batch generator |
+|---|---|---|
+| Claude calls per puzzle | ~10–15 (multi-step) | 1 (single-shot) |
+| Relative cost | ~$0.05 | ~$0.015 |
+| Quality | High (iterative refinement) | Lower (no refinement) |
+| Latency | Minutes (sequential) | 15–60 min (batch) |
+| Use case | On-demand, admin trigger | Nightly bulk fill |
+
+## Human Review of Rejected Puzzles
+
+The validation pipeline is automated but not infallible. Three admin endpoints let you review, play, and override rejected puzzles:
+
+```bash
+# 1. List rejected puzzles — shows words, score, and fail reasons
+curl "http://localhost:5000/admin/puzzles/rejected"
+
+# 2. Start a playable game session from a rejected puzzle
+curl -X POST http://localhost:5000/admin/puzzles/<puzzle_id>/start-review-game
+# → returns game_id; play it through the normal frontend
+
+# 3. Approve it if the validator was wrong
+curl -X POST http://localhost:5000/admin/puzzles/<puzzle_id>/approve
+```
+
+The relevant service functions are in `puzzle_pool_service.py`:
+- `get_rejected_puzzles(config_name, limit)` — query layer for the list endpoint
+- `_fetch_puzzle_connections(puzzle_id)` — fetches groups+words for any puzzle status; used by both the review game and `validate_and_store()`
+- `manually_approve_puzzle(puzzle_id)` — force-approves without re-running validation; preserves the original `validation_score` and `validation_report` for audit
+
+## Cost Tracking
+
+Every Anthropic API call should call `record_usage()` after the response:
+
+```python
+from ..services.usage_tracker import record_usage
+
+response = client.messages.create(...)
+
+record_usage(
+    source="my_feature",        # label for this calling context
+    model="claude-opus-4-6",
+    response=response,
+    puzzle_id="...",            # optional
+    metadata={"step": "Step 1"},
+)
+```
+
+Errors are swallowed — usage tracking must never block the generation pipeline.
+
+Query aggregated costs:
+
+```python
+from ..services.usage_tracker import get_cost_summary
+
+summary = get_cost_summary(start_date="2026-03-01", end_date="2026-03-09")
+# {"total_cost_usd": 1.23, "total_input_tokens": 500000, "row_count": 42, ...}
+
+# Filter by calling context:
+summary = get_cost_summary("2026-03-01", "2026-03-09", source="batch_generator")
+```
 
 ## Code Style
 
-### Python Standards
+- **Follow PEP 8** — standard Python style
+- **Type hints** — use where it improves clarity
+- **Descriptive names** — explicit over clever
+- **Comments** — explain *why*, not *what*
+- **Files end with a newline**
 
-- **Follow PEP 8** - Standard Python style guide
-- **Type hints** - Use where it improves clarity
-- **Descriptive names** - Clear, explicit variable and function names
-- **Comments** - Explain *why*, not *what* (code should be self-documenting for the "what")
+## Flask Patterns
 
-### Flask Patterns
+- Routes are grouped in blueprints under `src/blueprints/`
+- All responses use consistent JSON: `{"status": "success", "data": {...}}` or `{"status": "error", "message": "..."}`
+- Use appropriate HTTP status codes (200 / 201 / 400 / 404 / 500)
 
-- **Route organization** - Group related routes logically
-- **Error handling** - Return appropriate HTTP status codes
-- **JSON responses** - Consistent response format for API endpoints
-- **Blueprint usage** - If the app grows, use blueprints for organization
+## Database
 
-### Database
-
-- **SQLite** - Lightweight database for local development
-- **Schema location** - Database schema definitions in `/schemas/`
-- **Migrations** - Document schema changes if making database modifications
-- **Connection management** - Properly close connections, use context managers
-
-## API Development
-
-### Creating Endpoints
-
-1. **RESTful conventions** - Follow REST principles
-   - GET for retrieval
-   - POST for creation
-   - PUT/PATCH for updates
-   - DELETE for removal
-
-2. **Response format** - Consistent JSON structure
-   ```python
-   # Success
-   {"status": "success", "data": {...}}
-
-   # Error
-   {"status": "error", "message": "Error description"}
-   ```
-
-3. **Status codes** - Use appropriate HTTP status codes
-   - 200: Success
-   - 201: Created
-   - 400: Bad request
-   - 404: Not found
-   - 500: Server error
-
-### Frontend Communication
-
-- **CORS** - Ensure CORS is properly configured for frontend origin
-- **JSON parsing** - Validate and sanitize incoming JSON data
-- **Error messages** - Return helpful error messages for frontend display
-
-## Game Logic
-
-### Word Generation
-
-- **LLM Integration** - Uses language models to generate words and connections
-- **Validation** - Ensure generated content meets game requirements
-- **Caching** - Consider caching generated games if appropriate
-
-### Game State
-
-- **State management** - Track game progress, mistakes, connections found
-- **Data persistence** - Store game data in SQLite
-- **User sessions** - Handle both authenticated and guest users
+- **Supabase client** — use `_get_client()` helpers in each service module (lazy import avoids circular imports with the `supabase/` directory)
+- **Migrations** — all schema changes go in `supabase/migrations/` as timestamped SQL files
+- **No raw SQL strings in app code** — use the `supabase-py` fluent API for queries
+- **Optimistic locking** — the job queue uses `UPDATE ... WHERE status='queued'` as a compare-and-swap to prevent multiple workers claiming the same job
 
 ## Testing
 
-### Running Tests
-
 ```bash
+# From the backend directory
 pytest
 ```
 
-### Writing Tests
-
-- **Test location** - All tests in `/tests/` directory
-- **Coverage** - Test critical game logic and API endpoints
-- **Test data** - Use fixtures for test data
-- **Don't disable tests** - Fix failing tests, don't skip them
-
-## Common Tasks
-
-### Adding a New API Endpoint
-
-1. Define the route in appropriate module under `/src/`
-2. Implement the handler function
-3. Add input validation
-4. Return consistent JSON response
-5. Update frontend if needed
-6. Test the endpoint
-
-### Modifying Game Logic
-
-1. Locate the relevant module in `/src/`
-2. Understand existing implementation
-3. Make changes incrementally
-4. Test thoroughly
-5. Update database schema if needed
-
-### Database Changes
-
-1. Document current schema
-2. Plan migration strategy
-3. Update schema files in `/schemas/`
-4. Test with existing data
-5. Consider data migration for production
-
-## Dependencies
-
-### Adding New Dependencies
-
-1. Install with pip: `pip install package-name`
-2. Update requirements.txt: `pip freeze > requirements.txt`
-3. Document why the dependency is needed
-4. Ensure it's compatible with Python 3.6+
+Tests cover game logic, the DAL, API endpoints, puzzle generation, and the pool service. Fix failing tests — never skip them.
 
 ## Security
 
-- **Input validation** - Always validate user input
-- **SQL injection** - Use parameterized queries
-- **Environment variables** - Keep secrets in `.env`, never in code
-- **Authentication** - Integrate with frontend's Supabase auth
-- **Error messages** - Don't expose sensitive information in errors
+- **Input validation** — always validate user input before processing
+- **Parameterised queries** — the Supabase client handles this; don't build SQL strings manually
+- **Environment variables** — secrets in `.env` only, never in code
+- **JWT validation** — `auth/middleware.py` validates Supabase JWTs on protected routes
+- **Error messages** — don't expose internal stack traces to API callers
 
-## Performance
+## Adding New Dependencies
 
-- **Database queries** - Optimize queries, use indexes where appropriate
-- **Caching** - Cache expensive operations (LLM generation)
-- **Connection pooling** - Reuse database connections efficiently
+```bash
+uv pip install <package>
+uv pip freeze > requirements.txt
+```
 
-## Debugging
-
-- **Logging** - Use Python's logging module for debugging
-- **Error tracing** - Include stack traces in development
-- **Development mode** - Use Flask's debug mode locally
-- **Production safety** - Disable debug mode in production
+Document why the dependency is needed in the commit message.
 
 ## Important Reminders
 
-- **Virtual environment** - Always work within `.venv`
-- **Environment variables** - Use `.env` for configuration
-- **Test before commit** - Run tests and manual testing
-- **API contracts** - Keep frontend informed of API changes
-- **Python version** - Maintain compatibility with Python 3.6+
+- **Always use `uv`** for installing packages — not bare `pip`
+- **Python 3.10+** is required (match/case syntax, newer type hints)
+- **Never commit `.env`** — it contains production secrets
+- **Run tests before committing** — `pytest` from the backend directory
+- **Keep API contracts in sync** — frontend must match any endpoint changes
+- **Usage tracking** — add `record_usage()` after every new Claude API call

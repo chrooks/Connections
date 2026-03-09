@@ -171,6 +171,105 @@ _BRAINSTORM_TOOL = {
     },
 }
 
+# ---------------------------------------------------------------------------
+# System prompt — cached across all puzzle generator API calls.
+#
+# Steps 1, 2, and 4 all call `_call_with_tool()`, which passes this as the
+# `system` parameter with cache_control so Anthropic caches it for 5 minutes.
+# Because this is the shared static context for the whole pipeline, all three
+# direct Claude calls within a single puzzle run share one cache entry, cutting
+# input-token cost by ~90% on the second and third calls.
+#
+# Cache breakpoint: placed on the tool dict (not the system text block) so that
+# combined system + tool content always exceeds the 1024-token Sonnet minimum.
+# ---------------------------------------------------------------------------
+_PUZZLE_SYSTEM_PROMPT = """\
+You are an expert puzzle designer for the NYT Connections game. Your job is one \
+step of a multi-stage pipeline that generates a complete, high-quality Connections puzzle.
+
+THE CONNECTIONS GAME:
+Players see a 4×4 grid of 16 words and must sort them into exactly 4 groups of 4, \
+each sharing a hidden connection. Groups are colour-coded by difficulty: \
+YELLOW (easiest) → GREEN → BLUE → PURPLE (hardest). \
+Players get 4 attempts; a wrong guess uses one up. \
+The best puzzles make players second-guess themselves because surface associations \
+pull words toward the wrong group.
+
+DIFFICULTY CALIBRATION:
+  YELLOW (easiest) — the connection is immediately obvious to most adults using \
+everyday common knowledge. Example: 'Things you find in a kitchen' → \
+SPATULA, COLANDER, WHISK, LADLE.
+
+  GREEN (moderate) — the connection requires a moment of thought or slightly \
+less-common knowledge. Players often need to rule out other groups first. \
+Example: 'Words that can follow OVER' → COAT, COME, BOARD, NIGHT.
+
+  BLUE (hard) — the connection is non-obvious and may rely on specialised, \
+cultural, or domain-specific knowledge. Many players will struggle. \
+Example: 'Hitchcock film settings' → BODEGA BAY, BATES MOTEL, REAR WINDOW, AMBROSE CHAPEL.
+
+  PURPLE (hardest) — the connection depends on wordplay, lateral thinking, hidden \
+patterns, or a reveal that makes players say 'aha!' only after seeing the answer. \
+Example: 'Each contains a hidden planet': mERCURY, jUPITER, sATURN, nEPTUNE.
+
+CATEGORY TYPES — six connection styles, each targeting a different cognitive skill:
+
+  SYNONYMS — words that share a single meaning or can substitute for each other. \
+The connection is purely semantic. \
+Example: 'Words meaning EXHAUSTED' → SPENT, DRAINED, BEAT, WASHED OUT. \
+The category name must make the synonymy precise — not 'Tired words' but \
+'Words meaning completely depleted of energy'.
+
+  MEMBERS OF A SET — items that all belong to a specific, named real-world category. \
+The category must be concrete and well-known; avoid broad labels. \
+Example: 'Types of PASTA' → RIGATONI, FARFALLE, ORZO, BUCATINI. \
+Not 'Italian food' (too broad) or 'Noodles' (imprecise).
+
+  FILL IN THE BLANK — each word completes the same common phrase combined with a \
+single shared hidden word. The phrase direction must be consistent (all PREFIX or \
+all SUFFIX). Example: '___ CARD' → CREDIT, WILD, PLAYING, BUSINESS. \
+The hidden word must never appear in the word list.
+
+  WORDPLAY — the connection is a structural or phonetic trick. You MUST choose one \
+precise, verifiable rule and confirm every word satisfies it:
+    • Hidden word: each word contains a smaller word inside — e.g. 'Each hides a METAL': \
+gOLDen (GOLD), coPPEr (COPPER). Verify letter-by-letter.
+    • Anagrams of each other: every word uses the exact same letters — e.g. LISTEN, \
+SILENT, ENLIST, TINSEL. Verify by sorting all letters.
+    • Homophones of a category: each word sounds like a member of a set — e.g. \
+'Sounds like a number': ATE (eight), TOO (two), FOR (four), WON (one). \
+Verify the sound match explicitly.
+  Do NOT include a word unless you can prove the rule applies. \
+SPRING is not a homophone of a letter. EARTH is only an anagram of HEART \
+if the category is 'anagrams of HEART'.
+
+  COMPOUND WORDS — each word pairs with the same hidden word to form a valid compound \
+word or two-word phrase. Direction must be consistent. \
+Example: 'FIRE ___' → TRUCK, WORKS, FLY, PLACE. Verify each compound is in common usage.
+
+  CULTURAL KNOWLEDGE — the connection requires knowing pop culture, history, sport, \
+literature, or a specialist domain. The domain must be specific enough that a \
+knowledgeable person confirms the link immediately. \
+Example: 'David Bowie alter egos' → ZIGGY, ALADDIN, JARETH, MAJOR TOM. \
+Aim for 'hard but fair' — not trivia only specialists know.
+
+PUZZLE QUALITY STANDARDS:
+  • Red herring potential: the best groups contain words that ALSO superficially fit \
+other groups, forcing players to commit carefully. Design for misdirection.
+  • No overlap: a word must belong to exactly one group. Remove any word that fits \
+two groups equally well.
+  • Specificity: category names must be specific and evocative. \
+'Things that can be COLD' is worse than 'Words that follow STONE COLD'.
+  • Avoid clichés: do not use days of the week, seasons, months, primary colours, \
+planets, cardinal directions, card suits, or broad taxonomies like 'US states'. \
+These are the first things anyone thinks of. Aim for surprising, cross-domain connections.
+  • Difficulty arc: the four groups should genuinely escalate from obvious to tricky. \
+A puzzle where all four groups feel like YELLOW is boring; all PURPLE is frustrating.
+  • Common knowledge baseline: YELLOW and GREEN groups should be solvable by most \
+English-speaking adults without specialist knowledge. BLUE and PURPLE may assume \
+cultural awareness but not deep expertise.\
+"""
+
 _REFINEMENT_TOOL = {
     "name": "submit_refinement",
     "description": "Submit cross-group red herring analysis and suggested word swaps.",
@@ -268,14 +367,24 @@ def _call_with_tool(
     tool: dict,
     temperature: float,
     step_name: str,
+    system: Optional[str] = None,
 ) -> Optional[dict]:
     """
     Calls Claude with a forced tool_use and records token usage.
 
     Retries up to 3 times with exponential backoff on APIError.
     Returns the tool input dict, or None if all attempts fail.
+
+    When `system` is provided, the system prompt is sent with cache_control and
+    the tool definition is marked as the cache breakpoint. Combined, system +
+    tool schema exceeds the 1024-token Sonnet caching minimum, so the shared
+    context is cached for 5 minutes across all calls within a pipeline run.
     """
     last_error: Exception | None = None
+
+    # Mark the tool as the cache breakpoint so system + tool combined always
+    # exceeds the 1024-token minimum Sonnet requires for prompt caching.
+    cached_tool = {**tool, "cache_control": {"type": "ephemeral"}} if system else tool
 
     for attempt in range(3):
         if attempt > 0:
@@ -284,16 +393,19 @@ def _call_with_tool(
             time.sleep(wait)
 
         try:
-            response = client.messages.create(
+            create_kwargs: dict = dict(
                 model=MODEL,
                 max_tokens=MAX_TOKENS,
                 temperature=temperature,
-                tools=[tool],
+                tools=[cached_tool],
                 # Forcing a specific tool name prevents plain-text fallback,
                 # guaranteeing a parseable structured response.
                 tool_choice={"type": "tool", "name": tool["name"]},
                 messages=[{"role": "user", "content": prompt}],
             )
+            if system:
+                create_kwargs["system"] = [{"type": "text", "text": system}]
+            response = client.messages.create(**create_kwargs)
             tracker.record(response)
 
             tool_block = next(
@@ -353,7 +465,8 @@ def _step1_diversity_seed(
     )
 
     result = _call_with_tool(
-        client, tracker, prompt, _SEED_TOOL, temperature=1.0, step_name="Step 1"
+        client, tracker, prompt, _SEED_TOOL, temperature=1.0, step_name="Step 1",
+        system=_PUZZLE_SYSTEM_PROMPT,
     )
     if result is None:
         return None
@@ -446,7 +559,8 @@ def _step2_category_brainstorm(
     )
 
     result = _call_with_tool(
-        client, tracker, prompt, _BRAINSTORM_TOOL, temperature=0.9, step_name="Step 2"
+        client, tracker, prompt, _BRAINSTORM_TOOL, temperature=0.9, step_name="Step 2",
+        system=_PUZZLE_SYSTEM_PROMPT,
     )
     if result is None:
         return None
@@ -880,7 +994,8 @@ def _step4_red_herring_refinement(
     )
 
     result = _call_with_tool(
-        client, tracker, prompt, _REFINEMENT_TOOL, temperature=0.7, step_name="Step 4"
+        client, tracker, prompt, _REFINEMENT_TOOL, temperature=0.7, step_name="Step 4",
+        system=_PUZZLE_SYSTEM_PROMPT,
     )
 
     if result is None:

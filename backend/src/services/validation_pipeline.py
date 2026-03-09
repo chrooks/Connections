@@ -354,7 +354,7 @@ def validate_and_store(puzzle_id: str, supabase_client=None) -> dict:
             puzzle_id,
             report["auto_fail_reasons"],
         )
-        reject_puzzle(puzzle_id, report)
+        reject_puzzle(puzzle_id, report, report["score"])
 
     return report
 

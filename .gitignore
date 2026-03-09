@@ -16,4 +16,7 @@ backend/connectionsdb.db
 backend/src/generation/smoke_test_*.txt
 backend/src/generation/puzzle_gen_*.json
 
+# Validation pipeline run outputs — local debug artifacts, not source
+backend/validation_runs/
+
 .learning/

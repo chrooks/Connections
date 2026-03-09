@@ -79,6 +79,72 @@ _DIFFICULTY_DESCRIPTIONS = {
 }
 
 # ---------------------------------------------------------------------------
+# System prompt — cached across all group generation calls.
+#
+# This block is sent as the `system` parameter with cache_control so Anthropic
+# caches it for 5 minutes. Within a single puzzle run, all 4 group calls reuse
+# the same cache entry, cutting input-token cost by ~90% on calls 2-4.
+#
+# Cache breakpoint is placed on the _GROUP_SCHEMA_TOOL (the last tool in the
+# tools list) so the combined system + tool content (~1200 tokens) clears the
+# 1024-token minimum required for Sonnet caching.
+# ---------------------------------------------------------------------------
+_SYSTEM_PROMPT = """\
+You are designing one group for a NYT Connections-style word puzzle.
+
+AVOID OVERUSED CONNECTIONS THEMES:
+  Do not use: days of the week, seasons (spring/summer/fall/winter), months of the year,
+  primary colors, planets, cardinal directions, card suits, or broad taxonomies like
+  'Types of fruit' or 'US states'. These are the first things anyone thinks of.
+  Also avoid: Monopoly properties, chess pieces, playing card ranks, dice games,
+  or any other board game taxonomy. These have become the new default clichés.
+  Choose something more specific, surprising, or cross-domain.
+
+CATEGORY TYPES — reference guide for all six connection styles:
+
+  SYNONYMS — words that share a single meaning or can replace each other in a sentence.
+  Example category: 'Words meaning EXHAUSTED' → SPENT, DRAINED, BEAT, WASHED OUT.
+
+  MEMBERS OF A SET — items that all belong to a specific, named real-world category.
+  Example: 'Types of PASTA' → RIGATONI, FARFALLE, ORZO, BUCATINI.
+
+  FILL IN THE BLANK — each word completes the same common phrase when combined with a
+  shared hidden word. Example: '___ CARD' → CREDIT, WILD, PLAYING, BUSINESS.
+
+  WORDPLAY — the connection is a structural or phonetic trick. You MUST choose a single,
+  precise, verifiable rule and confirm every word satisfies it before including it.
+  Good rule types (pick ONE):
+    • Hidden word: each word contains a smaller word inside it — e.g. 'Each hides a METAL':
+      gOLDen, coPPEr, fEARth... verify by finding the metal in each word letter-by-letter.
+    • Anagrams of each other: every word uses the exact same letters — e.g. LISTEN, SILENT,
+      ENLIST, TINSEL. Verify by sorting letters: L-E-I-N-S-T for all four.
+    • Homophones of a category: each word sounds like a member of a set — e.g. 'Sounds like
+      a number': ATE (eight), TOO (two), FOR (four), WON (one). Verify the sound match explicitly.
+  Do NOT include a word unless you can prove the rule applies to it. SPRING is not a
+  homophone of a letter. EARTH is only an anagram of HEART if the category is 'anagrams of HEART'.
+
+  COMPOUND WORDS — each word pairs with the same hidden word to form a valid compound.
+  Example: 'FIRE ___' → TRUCK, WORKS, FLY, PLACE.
+
+  CULTURAL KNOWLEDGE — the connection requires knowing pop culture, history, sport,
+  literature, or another domain. Example: 'Bowie alter egos' → ZIGGY, ALADDIN, JARETH, MAJOR TOM.
+
+UNIVERSAL RULES (apply regardless of category type):
+  1. All words must be UPPERCASE.
+  2. The category name must be specific and evocative — not generic labels like 'Animals' or 'Colors'.
+  3. Words that appear in the category name must NOT appear in the word list.
+  4. No word may appear in any existing group listed below.
+
+TOOL CALL ORDER — fill the submit_word_group fields in this sequence:
+  1. category_name — the specific label.
+  2. design_notes — write your rule statement, then prove EACH word letter-by-letter.
+     Only move on once every planned word has passed. If a word fails, replace it.
+  3. words — copy only the words that passed step 2.
+  4. candidate_words — copy only the 8 words that passed step 2.
+Do not fill words or candidate_words with unverified words.\
+"""
+
+# ---------------------------------------------------------------------------
 # Category type descriptions with examples — grounding Claude in what each
 # style looks like helps it produce on-theme, well-calibrated groups.
 # ---------------------------------------------------------------------------
@@ -179,6 +245,10 @@ _GROUP_SCHEMA_TOOL = {
         },
         "required": ["category_name", "words", "candidate_words", "design_notes"],
     },
+    # cache_control placed on the last (only) tool so the combined
+    # system-prompt + tool content (~1200 tokens) forms a single cache entry.
+    # Anthropic caches everything up to and including this breakpoint.
+    "cache_control": {"type": "ephemeral"},
 }
 
 
@@ -260,6 +330,9 @@ def generate_single_group(
                 model=MODEL,
                 max_tokens=MAX_TOKENS,
                 temperature=TEMPERATURE,
+                # Static system prompt is cached via the breakpoint on _GROUP_SCHEMA_TOOL.
+                # Calls 2-4 within the same puzzle run reuse the cache entry (~90% savings).
+                system=[{"type": "text", "text": _SYSTEM_PROMPT}],
                 tools=[_GROUP_SCHEMA_TOOL],
                 # Forcing a specific tool call prevents Claude from replying with
                 # plain text, which would break the structured-output contract.
@@ -308,7 +381,12 @@ def _build_prompt(
     category_hint: "str | None" = None,
 ) -> str:
     """
-    Constructs the user message sent to Claude.
+    Constructs the dynamic user message sent to Claude.
+
+    Static context (category type guide, rules, tool order) now lives in
+    _SYSTEM_PROMPT and is cached across calls. This function produces only
+    the per-call dynamic fields: which specific category type and difficulty
+    to use, group size, the red herring rule, existing groups, and any hint.
 
     Kept as a separate function so:
     - The retry loop stays readable.
@@ -316,19 +394,7 @@ def _build_prompt(
     - Unit tests can call _build_prompt() directly to inspect prompt content.
     """
     lines = [
-        "You are designing one group for a NYT Connections-style word puzzle.",
-        "",
-        # Anti-cliché instruction — prevents the model from defaulting to the
-        # safest/most common categories (days, seasons, months) on every run.
-        # Board games are explicitly listed because Monopoly properties and chess
-        # pieces are the new go-to easy categories once classic clichés are blocked.
-        "AVOID OVERUSED CONNECTIONS THEMES:",
-        "  Do not use: days of the week, seasons (spring/summer/fall/winter), months of the year,",
-        "  primary colors, planets, cardinal directions, card suits, or broad taxonomies like",
-        "  'Types of fruit' or 'US states'. These are the first things anyone thinks of.",
-        "  Also avoid: Monopoly properties, chess pieces, playing card ranks, dice games,",
-        "  or any other board game taxonomy. These have become the new default clichés.",
-        "  Choose something more specific, surprising, or cross-domain.",
+        f"THIS CALL — generate one group with the following parameters:",
         "",
         f"CATEGORY TYPE: {_CATEGORY_TYPE_DESCRIPTIONS[category_type]}",
         "",
@@ -339,15 +405,6 @@ def _build_prompt(
             f"plus 8 total candidate words in 'candidate_words' "
             f"(the 8 includes your final {words_per_group})."
         ),
-        "",
-        "RULES:",
-        "  1. All words must be UPPERCASE.",
-        (
-            "  2. The category name must be specific and evocative — not generic "
-            "labels like 'Animals' or 'Colors'."
-        ),
-        "  3. Words that appear in the category name must NOT appear in the word list.",
-        "  4. No word may appear in any existing group listed below.",
     ]
 
     # Red herring requirement only applies after the first group exists.
@@ -355,21 +412,19 @@ def _build_prompt(
     # shortcut of simply recycling existing-group words as "distractors."
     if existing_groups:
         lines += [
-            "  5. RED HERRING — Among your 8 candidate_words, at least one must be a word that:",
-            "       (a) GENUINELY satisfies THIS group's category rule — it is a valid member, AND",
-            "       (b) Could plausibly be mistaken for a member of a specific existing group,",
-            "           causing a player to assign it to the wrong group.",
-            "     In design_notes: name the red herring word, prove it passes (a) by showing",
-            "     how it fits this group's rule, then name which existing group it could be",
-            "     confused with and explain the surface-level similarity.",
-            "     FORBIDDEN: Do NOT put words from existing groups into candidate_words just",
-            "     because they appear there. If a word doesn't pass THIS group's rule, it is not",
-            "     a red herring — it's a mistake. Every candidate_word must fit this category.",
+            "",
+            "RULE 5 — RED HERRING: Among your 8 candidate_words, at least one must be a word that:",
+            "  (a) GENUINELY satisfies THIS group's category rule — it is a valid member, AND",
+            "  (b) Could plausibly be mistaken for a member of a specific existing group.",
+            "In design_notes: name the red herring word, prove it passes (a) by showing",
+            "how it fits this rule, then name which existing group it could be confused with.",
+            "FORBIDDEN: Every candidate_word must fit this category — never recycle existing words.",
         ]
     else:
-        lines.append(
-            "  5. (First group — no red herring requirement. Focus on originality.)"
-        )
+        lines += [
+            "",
+            "RULE 5: (First group — no red herring requirement. Focus on originality.)",
+        ]
 
     # List existing groups so Claude can avoid overlap and plan red herrings.
     if existing_groups:
@@ -393,22 +448,7 @@ def _build_prompt(
             "  but the core concept and theme MUST remain the same.",
         ]
 
-    lines += [
-        "",
-        # Explicit ordering instruction: design_notes first (rule + per-word proof),
-        # then and only then commit to the word lists. This mirrors the schema field
-        # ordering, which nudges Claude to fill fields in the right sequence.
-        "WHEN CALLING THE TOOL — fill the fields in this order:",
-        "  1. category_name — the specific label.",
-        "  2. design_notes — write your rule statement, then prove EACH word letter-by-letter.",
-        "     Only move on once every planned word has passed. If a word fails, replace it.",
-        "  3. words — copy only the words that passed step 2.",
-        "  4. candidate_words — copy only the 8 words that passed step 2.",
-        "",
-        "Do not fill words or candidate_words with unverified words.",
-        "Call the submit_word_group tool now.",
-    ]
-
+    lines += ["", "Call the submit_word_group tool now."]
     return "\n".join(lines)
 
 

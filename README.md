@@ -107,16 +107,93 @@ The frontend runs at `http://localhost:5173`.
 
 All persistent state lives in Supabase PostgreSQL:
 
-- **`game_sessions` table**: Stores active and completed games — the word grid, connections, guess history, mistakes remaining, win/loss status, and an optional link to the player's Supabase user account. Guest games have a `NULL` `user_id`.
-- **Puzzle pool tables** (`puzzles`, `puzzle_groups`, `puzzle_words`): Pre-generated, approved puzzles served on game start. Each `game_sessions` row links back to the `puzzles` row it was drawn from via `puzzle_id`, enabling per-puzzle analytics (completion rate, average mistakes, etc.).
+- **`game_sessions`**: Active and completed games — the word grid, connections, guess history, mistakes remaining, win/loss status, and an optional link to the player's Supabase account. Guest games have a `NULL` `user_id`.
+- **`puzzles` / `puzzle_groups` / `puzzle_words`**: Pre-generated, approved puzzles served on game start. Each session links back to the puzzle it was drawn from, enabling per-puzzle analytics.
+- **`puzzle_generation_jobs`**: Work queue for the background worker. Each row is a job with a status (`queued → processing → completed/failed`).
+- **`api_usage`**: Append-only log of every Anthropic API call — token counts, estimated USD cost, model, source context, and optionally the puzzle or job it was generated for.
 
 Because game state is in the cloud, sessions survive server restarts and are linked to authenticated users, making per-user history and stats possible in the future.
 
 ### Puzzle Generation Pipeline
 
-Puzzles are generated offline by `group_generator.py`, which calls Claude via the Anthropic API and uses structured tool output to produce candidate word groups. Generated puzzles go through an approval step in Supabase before entering the pool. The pipeline is designed so generation and validation happen separately from the game serving path.
+There are two generation paths, optimised for different needs:
+
+**Quality path (worker pipeline)** — used for on-demand generation:
+
+1. A request hits `POST /admin/generate-puzzles`, which writes N jobs to `puzzle_generation_jobs` and returns immediately.
+2. The background worker (`src/workers/worker.py`) polls the jobs table, claims a job with an optimistic-lock `UPDATE ... WHERE status='queued'`, and runs a multi-step Claude pipeline (`puzzle_generator.py` → `group_generator.py`).
+3. Each step uses prompt caching — the system prompt + tool schema are cached across API calls in the same run, cutting costs by ~90% for steps 2 onward.
+4. The finished puzzle passes through `validation_pipeline.py` (embedding similarity + LLM review) before entering the pool.
+
+**Volume path (batch generator)** — used for nightly fills:
+
+- `batch_generator.py` submits N single-shot Claude requests via the Anthropic Batch API (50% cost discount), polls for completion, validates results, and seeds them directly into the pool.
+- Lower quality than the multi-step pipeline, but roughly 3× cheaper per puzzle. Use for restocking overnight.
+
+Run the worker process:
+
+```bash
+cd backend
+source .venv/bin/activate
+python -m src.workers.run_workers
+```
+
+Trigger generation via the admin endpoint (worker must be running):
+
+```bash
+curl -X POST http://localhost:5000/admin/generate-puzzles \
+  -H "Content-Type: application/json" \
+  -d '{"count": 5, "config_name": "classic"}'
+```
+
+Run a batch fill directly (blocks until complete, ~15–60 min):
+
+```python
+from backend.src.generation.batch_generator import run_batch_fill
+result = run_batch_fill(count=20)
+```
+
+### Human Review of Rejected Puzzles
+
+The validation pipeline auto-approves and auto-rejects puzzles, but it's imperfect — borderline puzzles sometimes get rejected when a human would judge them as fine. A review workflow lets you play any rejected puzzle and override the decision:
+
+1. **List rejections** — see each puzzle's words, validation score, and the specific fail reasons:
+
+```bash
+curl "http://localhost:5000/admin/puzzles/rejected"
+```
+
+2. **Play it** — create a real game session from a rejected puzzle so you experience it as a player would:
+
+```bash
+curl -X POST http://localhost:5000/admin/puzzles/<puzzle_id>/start-review-game
+```
+
+Take the returned `game_id` and play through the normal frontend at `http://localhost:5173`.
+
+3. **Override if it's valid** — approve it manually, bypassing the validator:
+
+```bash
+curl -X POST http://localhost:5000/admin/puzzles/<puzzle_id>/approve
+```
+
+The original `validation_score` and `validation_report` are preserved in the DB as an audit trail. Tracking how often you override the validator tells you whether the thresholds need tuning.
+
+### Cost Tracking
+
+Every Claude API call in the pipeline writes a row to `api_usage` via `usage_tracker.py`. Query costs any time:
+
+```python
+from backend.src.services.usage_tracker import get_cost_summary
+summary = get_cost_summary(start_date="2026-03-01", end_date="2026-03-09")
+print(f"Total: ${summary['total_cost_usd']}  |  Calls: {summary['row_count']}")
+```
+
+Or query Supabase directly for breakdowns by model or source.
 
 ### API Endpoints
+
+**Game endpoints:**
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -124,6 +201,15 @@ Puzzles are generated offline by `group_generator.py`, which calls Claude via th
 | POST | `/connections/submit-guess` | Submit a 4-word guess |
 | POST | `/connections/game-status` | Fetch current game state |
 | POST | `/connections/restart-game` | Reset with a new grid |
+
+**Admin endpoints:**
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/admin/generate-puzzles` | Enqueue N puzzle generation jobs |
+| GET | `/admin/puzzles/rejected` | List rejected puzzles with scores and content |
+| POST | `/admin/puzzles/<id>/start-review-game` | Play a rejected puzzle to judge it yourself |
+| POST | `/admin/puzzles/<id>/approve` | Human-override: approve a rejected puzzle |
 
 See [docs/API.md](docs/API.md) for full request/response details.
 
