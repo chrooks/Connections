@@ -33,7 +33,7 @@ const ConnectionsGame: React.FC = () => {
   const [solvedOrder, setSolvedOrder] = useState<number[]>([]);
   // Track the current grid word order (preserves order after swaps)
   const [gridWords, setGridWords] = useState<string[]>([]);
-  const { words, loading, error, connections, gameId, puzzleNumber } = useGameState(setMistakesLeft);
+  const { words, loading, error, connections, gameId, puzzleNumber, startNewGame } = useGameState(setMistakesLeft);
   const { selectedWords, addWord, clearWords } = useSelectedWords();
   // Animation phase: null = none, "nudge" = initial bump, "swap" = swapping positions, "fade" = fading out
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>(null);
@@ -342,8 +342,9 @@ const ConnectionsGame: React.FC = () => {
           );
         })}
       </div>
-      {/* Grid shows only remaining unsolved words */}
-      <GameGrid words={remainingWords} loading={loading} error={error} animationPhase={animationPhase} />
+      {/* Grid shows only remaining unsolved words.
+          Suppress loading indicator on end screen — the toast handles feedback instead. */}
+      <GameGrid words={remainingWords} loading={loading && !showEndScreen} error={error} animationPhase={animationPhase} />
       {/* Only render mistake tracker and control buttons until end screen shows */}
       {!showEndScreen && (
         <>
@@ -364,6 +365,7 @@ const ConnectionsGame: React.FC = () => {
         <ResultsModal
           isOpen={isResultsModalOpen}
           onClose={() => setIsResultsModalOpen(false)}
+          onNextPuzzle={() => { setIsResultsModalOpen(false); startNewGame(); }}
           gameResult={gameResult}
           guessHistory={guessHistory}
           connections={connections as Connection[]}

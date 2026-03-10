@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiPost, apiGet } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { toast } from "react-toastify";
 
 // localStorage key for guest session persistence (single-device only)
 const GUEST_GAME_KEY = "guestGameId";
@@ -28,6 +29,10 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
   const [connections, setConnections] = useState<any[]>([]);
   const [gameId, setGameId] = useState<string | null>(null);
   const [puzzleNumber, setPuzzleNumber] = useState<number | null>(null);
+  // Incrementing this triggers the useEffect to run again, starting a fresh game.
+  const [gameKey, setGameKey] = useState<number>(0);
+  // Tracks whether the current load was triggered by startNewGame (not initial load).
+  const isReloadingRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Wait for Supabase to resolve the session before initialising the game.
@@ -118,11 +123,35 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
         setError((err as Error).message);
       } finally {
         setLoading(false);
+        // Dismiss the "Loading next puzzle" toast once the new game is ready.
+        if (isReloadingRef.current) {
+          toast.dismiss("next-puzzle-loading");
+          isReloadingRef.current = false;
+        }
       }
     };
 
     initializeGame();
-  }, [authLoading, user, setMistakesLeft]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authLoading, user, gameKey, setMistakesLeft]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /**
+   * Starts a fresh game session. For guests, clears the saved localStorage game
+   * so the effect creates a new one rather than resuming the completed session.
+   * For authenticated users, the backend's get-or-create logic returns a new
+   * session automatically because the completed game is no longer IN_PROGRESS.
+   */
+  const startNewGame = () => {
+    if (!user) {
+      localStorage.removeItem(GUEST_GAME_KEY);
+    }
+    isReloadingRef.current = true;
+    toast.loading("Loading next puzzle...", {
+      toastId: "next-puzzle-loading",
+      position: "top-center",
+    });
+    setLoading(true);
+    setGameKey(k => k + 1);
+  };
 
   /**
    * Shuffles the words in the game grid.
@@ -147,7 +176,7 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
     });
   };
 
-  return { words, loading, error, connections, shuffleWords, gameId, puzzleNumber };
+  return { words, loading, error, connections, shuffleWords, gameId, puzzleNumber, startNewGame };
 };
 
 export default useGameState;

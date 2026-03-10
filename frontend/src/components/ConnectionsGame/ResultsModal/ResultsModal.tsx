@@ -21,6 +21,7 @@ interface GuessHistoryEntry {
 interface ResultsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onNextPuzzle: () => void;
   gameResult: 'WIN' | 'LOSS';
   guessHistory: GuessHistoryEntry[];
   connections: Connection[];
@@ -34,6 +35,7 @@ interface ResultsModalProps {
 const ResultsModal: React.FC<ResultsModalProps> = ({
   isOpen,
   onClose,
+  onNextPuzzle,
   gameResult,
   guessHistory,
   connections,
@@ -142,6 +144,15 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
           onClick={handleShare}
         >
           Share Your Results
+        </button>
+
+        {/* Next puzzle button */}
+        <button
+          id="results-next-puzzle-button"
+          className="next-puzzle-button"
+          onClick={onNextPuzzle}
+        >
+          Next Puzzle →
         </button>
       </div>
     </Modal>
