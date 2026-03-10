@@ -12,6 +12,9 @@ import { ANIMATION_DURATION, ANIMATION_DELAY, SWAP_DURATION, SWAP_STAGGER, FADE_
 import { AnimationPhase } from "./GameGrid/WordCard/WordCard";
 import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
+import useTimer from "../../hooks/useTimer";
+import PuzzleTimer from "./PuzzleTimer/PuzzleTimer";
+import { apiPost } from "../../lib/api";
 
 // Type for a connection object from the API
 interface Connection {
@@ -46,6 +49,20 @@ const ConnectionsGame: React.FC = () => {
   const [isResultsModalOpen, setIsResultsModalOpen] = useState<boolean>(false);
   // Track guess history for results visualization
   const [guessHistory, setGuessHistory] = useState<GuessHistoryEntry[]>([]);
+
+  // Timer: ticks while the game is in progress, resets when a new game starts.
+  // `gameId` is used as the reset key — it changes whenever a new session loads.
+  const timerActive = !loading && words.length > 0 && !gameComplete;
+  const { elapsed: elapsedSeconds, elapsedRef: elapsedSecondsRef } = useTimer(timerActive, gameId);
+
+  // When the game ends, persist the elapsed time to the backend.
+  useEffect(() => {
+    if (!gameComplete || !gameId) return;
+    apiPost("/record-completion-time", {
+      gameId,
+      timeSeconds: elapsedSecondsRef.current,
+    }).catch(err => console.error("Failed to record completion time:", err));
+  }, [gameComplete]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialize or reset gridWords whenever a new game's words arrive.
   // Using only `words` as the dependency ensures re-sync after HMR or a new game.
@@ -326,6 +343,8 @@ const ConnectionsGame: React.FC = () => {
   return (
     <div id="connections-game-container" className="game container">
       <ToastContainer />
+      {/* Show timer once words are loaded; stays visible (frozen) on end screen */}
+      {words.length > 0 && <PuzzleTimer seconds={elapsedSeconds} />}
       <span id="game-instructions" className="game-instructions"> Create four groups of four!</span>
       {/* Render solved connections above the grid */}
       <div id="solved-connections-container" className="solved-connections-container">

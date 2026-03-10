@@ -336,6 +336,40 @@ def reset_game(
     return get_game_from_db(game_id)
 
 
+def record_completion_time(game_id: str, time_seconds: int) -> None:
+    """
+    Persists the time (in seconds) it took the player to complete the puzzle.
+
+    Only writes if the game exists and has a terminal status (WIN or LOSS) —
+    avoids recording a partial time if the call arrives before the last guess
+    has been processed.
+
+    Args:
+        game_id:      UUID of the game session to update.
+        time_seconds: Elapsed wall-clock seconds measured by the frontend timer.
+    """
+    row = _fetch_game_row(game_id)
+    if row is None:
+        logger.warning("record_completion_time: game %s not found", game_id)
+        return
+
+    if row["status"] not in ("WIN", "LOSS"):
+        logger.warning(
+            "record_completion_time: game %s is still IN_PROGRESS, skipping",
+            game_id,
+        )
+        return
+
+    supabase = _get_client()
+    supabase.table("game_sessions").update({
+        "completion_time_seconds": time_seconds,
+    }).eq("id", game_id).execute()
+
+    logger.info(
+        "Recorded completion time %ds for game %s", time_seconds, game_id
+    )
+
+
 def get_all_games() -> "list[dict]":
     """
     Fetches all game sessions and returns them as a list of camelCase state dicts.

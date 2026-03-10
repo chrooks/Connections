@@ -1,7 +1,7 @@
-[ ] - Next puzzle button in results screen.
+[X] - Next puzzle button in results screen.
 [ ] - Profile screen where you can see previous puzzle results & stats
 [ ] - "We're out of puzzles, come back later" screen when there are no more puzzles to pull from pool
-[ ] - Timer to show players how long they took to solve the puzzle
+[X] - Timer to show players how long they took to solve the puzzle
 [ ] - Forfeit button
 [ ] - Feedback button 
         - This puzzle Too Easy - Impossible

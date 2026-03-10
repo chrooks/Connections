@@ -26,6 +26,7 @@ from ...game.game import (
     validate_id,
     restart_game,
 )
+from ...services.game_session_service import record_completion_time
 from ...auth.middleware import get_optional_user_id
 from ...services.utils import parse_and_validate_request, create_response
 
@@ -135,6 +136,31 @@ def restart():
 
     game = restart_game(game_id)
     return create_response(data=game)
+
+
+@api_bp.route("/record-completion-time", methods=["POST"])
+def record_time():
+    """
+    Records the elapsed time (in seconds) for a completed game session.
+    The frontend calls this once immediately after the game ends.
+
+    Requires JSON payload: { gameId, timeSeconds }
+    """
+    required_fields = ["gameId", "timeSeconds"]
+    data, error = parse_and_validate_request(required_fields)
+    if error:
+        return create_response(error=error, status_code=400)
+
+    game_id = data["gameId"]
+    if not validate_id(game_id):
+        return create_response(error="Invalid game ID.", status_code=404)
+
+    time_seconds = data["timeSeconds"]
+    if not isinstance(time_seconds, int) or time_seconds < 0:
+        return create_response(error="timeSeconds must be a non-negative integer.", status_code=400)
+
+    record_completion_time(game_id, time_seconds)
+    return create_response(data={"recorded": True})
 
 
 @api_bp.route("/get-game-data", methods=["GET"])
