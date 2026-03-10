@@ -59,6 +59,15 @@
   color: #000;
 }
 
+// Completion time displayed below the result title
+.results-completion-time {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin: -0.5rem 0 1rem;
+  letter-spacing: 0.05em;
+}
+
 // Subtitle text
 .results-subtitle {
   font-size: 1rem;

@@ -26,6 +26,7 @@ interface ResultsModalProps {
   guessHistory: GuessHistoryEntry[];
   connections: Connection[];
   puzzleNumber: number;
+  completionTimeSeconds: number;
 }
 
 /**
@@ -39,7 +40,8 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
   gameResult,
   guessHistory,
   connections,
-  puzzleNumber
+  puzzleNumber,
+  completionTimeSeconds
 }) => {
   const { user } = useAuth();
 
@@ -51,6 +53,13 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
     if (totalGuesses <= 6) return 'Solid!';
     return 'Great!';
   }, [gameResult, guessHistory.length]);
+
+  // Format elapsed seconds as MM:SS
+  const formattedTime = useMemo(() => {
+    const minutes = Math.floor(completionTimeSeconds / 60);
+    const seconds = completionTimeSeconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }, [completionTimeSeconds]);
 
   // Generate emoji grid from guess history
   const emojiGrid = useMemo(() => {
@@ -112,6 +121,11 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
 
         {/* Result title based on performance */}
         <h1 className="results-title">{resultTitle}</h1>
+
+        {/* Completion time */}
+        <p id="results-completion-time" className="results-completion-time">
+          ⏱ {formattedTime}
+        </p>
 
         {/* Subtitle */}
         <p className="results-subtitle">

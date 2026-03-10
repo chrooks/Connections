@@ -389,6 +389,7 @@ const ConnectionsGame: React.FC = () => {
           guessHistory={guessHistory}
           connections={connections as Connection[]}
           puzzleNumber={puzzleNumber || 0}
+          completionTimeSeconds={elapsedSeconds}
         />
       )}
     </div>
