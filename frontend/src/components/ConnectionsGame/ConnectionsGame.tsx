@@ -47,12 +47,28 @@ const ConnectionsGame: React.FC = () => {
   // Track guess history for results visualization
   const [guessHistory, setGuessHistory] = useState<GuessHistoryEntry[]>([]);
 
-  // Initialize gridWords from words when they load
+  // Initialize or reset gridWords whenever a new game's words arrive.
+  // Using only `words` as the dependency ensures re-sync after HMR or a new game.
+  // When restoring an in-progress game, `connections` is batched into the same
+  // React 18 update as `words`, so it already reflects the restored state when
+  // this effect runs — letting us reconstruct solvedOrder from guessed: true entries.
   useEffect(() => {
-    if (words.length > 0 && gridWords.length === 0) {
+    if (words.length > 0) {
       setGridWords(words);
+      // Reconstruct solvedOrder for restored sessions: collect indices of connections
+      // that the backend already marks as guessed, in their natural (index) order.
+      // For fresh games every connection has guessed: false, so this produces [].
+      const presolvedIndices = (connections as Connection[])
+        .map((conn, idx) => ({ conn, idx }))
+        .filter(({ conn }) => conn.guessed)
+        .map(({ idx }) => idx);
+      setSolvedOrder(presolvedIndices);
+      setGuessHistory([]);
+      setGameComplete(false);
+      setGameResult(null);
+      setShowEndScreen(false);
     }
-  }, [words, gridWords.length]);
+  }, [words]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get solved connections in the order they were guessed (not by difficulty)
   const solvedConnections = useMemo(() => {

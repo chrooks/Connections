@@ -1,34 +1,45 @@
 import { useState, useEffect } from "react";
 import { apiPost, apiGet } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
-// Store current game ID in memory (persists across hook calls but not page refreshes)
-let currentGameId: string | null = null;
+// localStorage key for guest session persistence (single-device only)
+const GUEST_GAME_KEY = "guestGameId";
 
 /**
  * Custom hook to manage the game grid state.
  * Fetches the game grid data from the server and handles loading and error states.
- * Automatically creates a new game if none exists.
  *
- * @param {Function} setMistakesLeft - A function to update the mistakesLeft state.
- * @returns {Object} An object containing the words array, loading state, error state, connections, gameId, and shuffleWords function.
+ * Session persistence strategy:
+ *   - Authenticated users: backend does get-or-create via /generate-grid, keyed
+ *     on user_id. The game persists across devices and page refreshes server-side.
+ *   - Guests: game ID is stored in localStorage for single-device persistence.
+ *     Completed (WIN/LOSS) games are automatically cleared so the next refresh
+ *     starts fresh.
+ *
+ * @param setMistakesLeft - A function to update the mistakesLeft state.
+ * @returns words, loading, error, connections, gameId, puzzleNumber, shuffleWords
  */
 const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
-  // State to store the words for the game grid
+  const { user, loading: authLoading } = useAuth();
+
   const [words, setWords] = useState<string[]>([]);
-  // State to indicate if the data is currently being loaded
   const [loading, setLoading] = useState<boolean>(true);
-  // State to store any error message that occurs during data fetching
   const [error, setError] = useState<string | null>(null);
-  // State to store the connections
   const [connections, setConnections] = useState<any[]>([]);
-  // State to store the current game ID
-  const [gameId, setGameId] = useState<string | null>(currentGameId);
-  // State to store the puzzle number for sharing results
+  const [gameId, setGameId] = useState<string | null>(null);
   const [puzzleNumber, setPuzzleNumber] = useState<number | null>(null);
 
   useEffect(() => {
+    // Wait for Supabase to resolve the session before initialising the game.
+    // Without this guard we would treat a logged-in user as a guest during the
+    // brief window while auth is loading, incorrectly writing their game ID to
+    // localStorage.
+    if (authLoading) return;
+
     /**
      * Creates a new game and returns the game ID.
+     * For authenticated users the backend applies get-or-create logic, so this
+     * transparently returns an existing IN_PROGRESS game when one exists.
      */
     const createNewGame = async (): Promise<string | null> => {
       try {
@@ -44,43 +55,61 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
     };
 
     /**
-     * Fetches the game state for the given game ID.
+     * Fetches the game state for the given game ID and hydrates local state.
+     * Returns { success, status } so the caller can act on game completion.
      */
-    const fetchGameState = async (id: string) => {
-      const response = await apiPost("/game-status", { gameId: id });
-      const jsonResponse = await response.json();
+    const fetchGameState = async (
+      id: string
+    ): Promise<{ success: boolean; status?: string }> => {
+      try {
+        const response = await apiPost("/game-status", { gameId: id });
+        const jsonResponse = await response.json();
 
-      if (response.ok && jsonResponse.data) {
-        const data = jsonResponse.data;
-        setWords(data.grid);
-        setMistakesLeft(data.mistakesLeft);
-        setConnections(data.connections);
-        setPuzzleNumber(data.puzzleNumber);
-        return true;
+        if (response.ok && jsonResponse.data) {
+          const data = jsonResponse.data;
+          setWords(data.grid);
+          setMistakesLeft(data.mistakesLeft);
+          setConnections(data.connections);
+          setPuzzleNumber(data.puzzleNumber);
+          return { success: true, status: data.status };
+        }
+        return { success: false };
+      } catch {
+        return { success: false };
       }
-      return false;
     };
 
     /**
-     * Main initialization: try existing game or create new one.
+     * Main initialization: determines the correct game session to load.
      */
     const initializeGame = async () => {
       try {
-        // If we have a stored game ID, try to fetch it
-        if (currentGameId) {
-          const success = await fetchGameState(currentGameId);
-          if (success) {
-            setGameId(currentGameId);
-            setLoading(false);
-            return;
+        // Guests: attempt to resume from localStorage
+        if (!user) {
+          const savedId = localStorage.getItem(GUEST_GAME_KEY);
+          if (savedId) {
+            const result = await fetchGameState(savedId);
+            if (result.success && result.status === "IN_PROGRESS") {
+              setGameId(savedId);
+              setLoading(false);
+              return;
+            }
+            // Saved game is invalid, expired, or already completed — discard it
+            // so the next step creates a fresh puzzle instead of re-serving the
+            // same finished game.
+            localStorage.removeItem(GUEST_GAME_KEY);
           }
         }
 
-        // No valid game exists, create a new one
+        // Authenticated users: /generate-grid does get-or-create on the backend.
+        // Guests with no valid saved game: create a new session.
         const newGameId = await createNewGame();
         if (newGameId) {
-          currentGameId = newGameId;
           setGameId(newGameId);
+          // Only persist to localStorage for guests; auth users are tracked server-side.
+          if (!user) {
+            localStorage.setItem(GUEST_GAME_KEY, newGameId);
+          }
           await fetchGameState(newGameId);
         } else {
           setError("Failed to create a new game");
@@ -93,7 +122,7 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
     };
 
     initializeGame();
-  }, [setMistakesLeft]);
+  }, [authLoading, user, setMistakesLeft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Shuffles the words in the game grid.

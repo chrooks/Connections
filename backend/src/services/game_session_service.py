@@ -12,6 +12,7 @@ Public API (mirrors the old dal.py interface):
     add_new_game(grid, connections, user_id, puzzle_id) → str
     check_game_exists(game_id)                          → bool
     get_game_from_db(game_id)                           → dict | None
+    get_active_game_for_user(user_id)                   → str | None
     check_guess(game_id, guess)                         → (bool, bool, bool, str)
     update_game_state(game_id, guess, is_correct)       → None
     check_game_over(game_row)                           → str
@@ -170,6 +171,28 @@ def get_game_from_db(game_id: str) -> "dict | None":
     if row is None:
         return None
     return _row_to_state(row)
+
+
+def get_active_game_for_user(user_id: str) -> "str | None":
+    """
+    Returns the game_id of the most recent IN_PROGRESS session for this user,
+    or None if no active session exists.
+
+    Used to implement get-or-create semantics in create_new_game so that
+    authenticated users resume their existing game rather than starting fresh
+    on every page load.
+    """
+    supabase = _get_client()
+    result = (
+        supabase.table("game_sessions")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("status", "IN_PROGRESS")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return result.data[0]["id"] if result.data else None
 
 
 def check_guess(

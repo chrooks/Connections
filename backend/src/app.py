@@ -13,11 +13,19 @@ Error Handlers:
 """
 
 import os
+import logging
 from dotenv import load_dotenv
 from flask import Flask
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Configure logging: suppress noisy third-party libs, show DEBUG for our code only.
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(levelname)s %(name)s: %(message)s",
+)
+logging.getLogger("src").setLevel(logging.DEBUG)
 from flask_cors import CORS
 from .blueprints.api.routes import api_bp
 from .blueprints.admin.routes import admin_bp

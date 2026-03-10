@@ -78,6 +78,7 @@ def _replenish_pool_async(config_name: str) -> None:
 from ..services.game_session_service import (
     add_new_game,
     get_game_from_db,
+    get_active_game_for_user,
     check_guess,
     reset_game,
     update_game_state,
@@ -193,11 +194,25 @@ def process_guess(game_id: str, guess: "list[str]") -> "tuple[dict, bool, bool, 
 
 def create_new_game(user_id: "str | None" = None) -> dict:
     """
-    Creates a new game session with a generated game grid and connections, and stores it in Supabase.
+    Get-or-create: for authenticated users, returns the existing IN_PROGRESS
+    game session rather than creating a new one on every call. This is what
+    makes the game persist across page refreshes and devices for logged-in users.
+
+    For guests (user_id=None), always creates a fresh session — the frontend
+    handles persistence via localStorage for single-device continuity.
 
     :param user_id: The Supabase auth user UUID, or None for guest sessions.
-    :return: The new game state dict.
+    :return: The game state dict (existing or newly created).
     """
+    if user_id:
+        existing_id = get_active_game_for_user(user_id)
+        if existing_id:
+            logger.info(
+                "Resuming existing IN_PROGRESS game %s for user %s",
+                existing_id, user_id,
+            )
+            return get_game_from_db(existing_id)
+
     grid, connections, puzzle_id = generate_game_grid()
     game_id = add_new_game(grid, connections, user_id=user_id, puzzle_id=puzzle_id)
     return get_game_from_db(game_id)
