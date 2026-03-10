@@ -2,7 +2,7 @@
 [ ] - Profile screen where you can see previous puzzle results & stats
 [ ] - "We're out of puzzles, come back later" screen when there are no more puzzles to pull from pool
 [X] - Timer to show players how long they took to solve the puzzle
-[ ] - Forfeit button
+[X] - Forfeit button
 [ ] - Feedback button 
         - This puzzle Too Easy - Impossible
         - Incorrect connection

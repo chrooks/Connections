@@ -26,7 +26,7 @@ from ...game.game import (
     validate_id,
     restart_game,
 )
-from ...services.game_session_service import record_completion_time
+from ...services.game_session_service import record_completion_time, forfeit_game
 from ...auth.middleware import get_optional_user_id
 from ...services.utils import parse_and_validate_request, create_response
 
@@ -136,6 +136,30 @@ def restart():
 
     game = restart_game(game_id)
     return create_response(data=game)
+
+
+@api_bp.route("/forfeit-game", methods=["POST"])
+def forfeit():
+    """
+    Ends an IN_PROGRESS game as a forfeit (voluntary give-up).
+    Sets status=LOSS and marks forfeited=True on the session row.
+
+    Requires JSON payload: { gameId }
+    """
+    required_fields = ["gameId"]
+    data, error = parse_and_validate_request(required_fields)
+    if error:
+        return create_response(error=error, status_code=400)
+
+    game_id = data["gameId"]
+    if not validate_id(game_id):
+        return create_response(error="Invalid game ID.", status_code=404)
+
+    success = forfeit_game(game_id)
+    if not success:
+        return create_response(error="Game cannot be forfeited (not IN_PROGRESS).", status_code=409)
+
+    return create_response(data={"forfeited": True})
 
 
 @api_bp.route("/record-completion-time", methods=["POST"])

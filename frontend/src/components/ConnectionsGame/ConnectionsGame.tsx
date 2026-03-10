@@ -14,6 +14,8 @@ import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import useTimer from "../../hooks/useTimer";
 import PuzzleTimer from "./PuzzleTimer/PuzzleTimer";
+import ForfeitButton from "./ForfeitButton/ForfeitButton";
+import ForfeitConfirmModal from "./ForfeitConfirmModal/ForfeitConfirmModal";
 import { apiPost } from "../../lib/api";
 
 // Type for a connection object from the API
@@ -44,9 +46,10 @@ const ConnectionsGame: React.FC = () => {
 
   // Game completion state for end-game experience
   const [gameComplete, setGameComplete] = useState<boolean>(false);
-  const [gameResult, setGameResult] = useState<'WIN' | 'LOSS' | null>(null);
+  const [gameResult, setGameResult] = useState<'WIN' | 'LOSS' | 'FORFEIT' | null>(null);
   const [showEndScreen, setShowEndScreen] = useState<boolean>(false);
   const [isResultsModalOpen, setIsResultsModalOpen] = useState<boolean>(false);
+  const [isForfeitModalOpen, setIsForfeitModalOpen] = useState<boolean>(false);
   // Track guess history for results visualization
   const [guessHistory, setGuessHistory] = useState<GuessHistoryEntry[]>([]);
 
@@ -121,9 +124,9 @@ const ConnectionsGame: React.FC = () => {
     }
   }, [solvedOrder.length, mistakesLeft, connections.length, gameComplete]);
 
-  // Trigger auto-reveal animation sequence when game ends in loss
+  // Trigger auto-reveal animation sequence when game ends in loss or forfeit
   useEffect(() => {
-    if (gameResult === 'LOSS') {
+    if (gameResult === 'LOSS' || gameResult === 'FORFEIT') {
       autoRevealConnections();
     }
   }, [gameResult]);
@@ -217,6 +220,20 @@ const ConnectionsGame: React.FC = () => {
 
     // After all connections are revealed, show the end screen
     setShowEndScreen(true);
+  };
+
+  // Handle forfeit confirmation: persist to backend then trigger the loss animation
+  const handleForfeitConfirm = async () => {
+    setIsForfeitModalOpen(false);
+    if (!gameId) return;
+    try {
+      await apiPost("/forfeit-game", { gameId });
+    } catch (err) {
+      console.error("Failed to record forfeit:", err);
+    }
+    // Treat forfeit as a game-ending event — same path as a natural loss
+    setGameComplete(true);
+    setGameResult('FORFEIT');
   };
 
   // Shuffle remaining words using Fisher-Yates algorithm
@@ -364,7 +381,7 @@ const ConnectionsGame: React.FC = () => {
       {/* Grid shows only remaining unsolved words.
           Suppress loading indicator on end screen — the toast handles feedback instead. */}
       <GameGrid words={remainingWords} loading={loading && !showEndScreen} error={error} animationPhase={animationPhase} />
-      {/* Only render mistake tracker and control buttons until end screen shows */}
+      {/* Only render mistake tracker, control buttons, and forfeit until end screen shows */}
       {!showEndScreen && (
         <>
           <MistakeTracker mistakesLeft={mistakesLeft} />
@@ -373,8 +390,14 @@ const ConnectionsGame: React.FC = () => {
             onDeselect={() => { }}
             onSubmit={handleSubmit}
           />
+          <ForfeitButton onClick={() => setIsForfeitModalOpen(true)} />
         </>
       )}
+      <ForfeitConfirmModal
+        isOpen={isForfeitModalOpen}
+        onCancel={() => setIsForfeitModalOpen(false)}
+        onConfirm={handleForfeitConfirm}
+      />
       {/* View Results button appears after end screen is ready */}
       {showEndScreen && (
         <ViewResultsButton onClick={() => setIsResultsModalOpen(true)} />

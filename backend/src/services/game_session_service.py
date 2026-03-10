@@ -336,6 +336,39 @@ def reset_game(
     return get_game_from_db(game_id)
 
 
+def forfeit_game(game_id: str) -> bool:
+    """
+    Force-ends an IN_PROGRESS game as a forfeit.
+
+    Sets status='LOSS', mistakes_left=0, and forfeited=True so the profile
+    screen can distinguish a voluntary give-up from a natural loss.
+
+    Returns True if the forfeit was applied, False if the game was not found
+    or was already in a terminal state.
+    """
+    row = _fetch_game_row(game_id)
+    if row is None:
+        logger.warning("forfeit_game: game %s not found", game_id)
+        return False
+
+    if row["status"] != "IN_PROGRESS":
+        logger.warning(
+            "forfeit_game: game %s already in terminal state %s",
+            game_id, row["status"],
+        )
+        return False
+
+    supabase = _get_client()
+    supabase.table("game_sessions").update({
+        "status":        "LOSS",
+        "mistakes_left": 0,
+        "forfeited":     True,
+    }).eq("id", game_id).execute()
+
+    logger.info("Game %s forfeited", game_id)
+    return True
+
+
 def record_completion_time(game_id: str, time_seconds: int) -> None:
     """
     Persists the time (in seconds) it took the player to complete the puzzle.

@@ -22,7 +22,7 @@ interface ResultsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNextPuzzle: () => void;
-  gameResult: 'WIN' | 'LOSS';
+  gameResult: 'WIN' | 'LOSS' | 'FORFEIT';
   guessHistory: GuessHistoryEntry[];
   connections: Connection[];
   puzzleNumber: number;
@@ -47,6 +47,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
 
   // Determine result title based on performance
   const resultTitle = useMemo(() => {
+    if (gameResult === 'FORFEIT') return 'Forfeited!';
     if (gameResult === 'LOSS') return 'Next time!';
     const totalGuesses = guessHistory.length;
     if (totalGuesses === 4) return 'Perfect!';

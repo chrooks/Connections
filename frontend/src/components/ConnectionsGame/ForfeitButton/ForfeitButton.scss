@@ -1,0 +1,15 @@
+.forfeit-button {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #555;
+  }
+}
