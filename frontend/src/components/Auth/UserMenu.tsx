@@ -1,7 +1,7 @@
 /**
  * User menu component shown in the navbar when authenticated.
  *
- * Displays a user icon that opens a dropdown with email and sign out option.
+ * Displays a user icon that opens a dropdown with email (clickable to profile) and sign out.
  */
 
 import React, { useState, useRef, useEffect } from "react";
@@ -10,7 +10,11 @@ import { faUser } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext";
 import "./Auth.scss";
 
-const UserMenu: React.FC = () => {
+interface UserMenuProps {
+  onNavigateToProfile?: () => void;
+}
+
+const UserMenu: React.FC<UserMenuProps> = ({ onNavigateToProfile }) => {
   const { user, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -42,7 +46,17 @@ const UserMenu: React.FC = () => {
 
       {isOpen && (
         <div id="user-menu-dropdown" className="user-menu-dropdown">
-          <div id="user-menu-email" className="user-menu-email">{user.email}</div>
+          {/* Email is the profile link */}
+          <button
+            id="user-menu-profile-link"
+            className="user-menu-profile-link"
+            onClick={() => {
+              onNavigateToProfile?.();
+              setIsOpen(false);
+            }}
+          >
+            {user.email}
+          </button>
           <button
             id="sign-out-button"
             onClick={() => {

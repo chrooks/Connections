@@ -439,3 +439,69 @@ def get_all_games() -> "list[dict]":
     supabase = _get_client()
     result = supabase.table("game_sessions").select("*").execute()
     return [_row_to_state(row) for row in result.data]
+
+
+def get_user_stats(user_id: str) -> dict:
+    """
+    Returns aggregate stats for an authenticated user across all completed games.
+
+    Forfeits are a subset of LOSS rows — distinguished by the forfeited flag so
+    the profile screen can show three separate counts (wins / natural losses / forfeits).
+    Average completion time is only computed over wins, since timed-out or forfeited
+    games don't have a meaningful "how fast did you solve it" value.
+    """
+    supabase = _get_client()
+    result = (
+        supabase.table("game_sessions")
+        .select("status, forfeited, completion_time_seconds")
+        .eq("user_id", user_id)
+        .in_("status", ["WIN", "LOSS"])
+        .execute()
+    )
+    rows = result.data
+    wins = [r for r in rows if r["status"] == "WIN"]
+    losses = [r for r in rows if r["status"] == "LOSS" and not r.get("forfeited")]
+    forfeits = [r for r in rows if r.get("forfeited")]
+    win_times = [r["completion_time_seconds"] for r in wins if r["completion_time_seconds"]]
+    avg_time = round(sum(win_times) / len(win_times)) if win_times else None
+    return {
+        "wins": len(wins),
+        "losses": len(losses),
+        "forfeits": len(forfeits),
+        "avgCompletionTimeSeconds": avg_time,
+    }
+
+
+def get_user_history(user_id: str) -> "list[dict]":
+    """
+    Returns completed game sessions for an authenticated user, newest first.
+
+    Translates the DB representation (status='LOSS', forfeited=True) into a
+    clean 'FORFEIT' outcome string so the frontend doesn't need to know the
+    underlying schema detail.
+    """
+    supabase = _get_client()
+    result = (
+        supabase.table("game_sessions")
+        .select(
+            "puzzle_number, status, forfeited, completion_time_seconds, "
+            "created_at, connections, previous_guesses"
+        )
+        .eq("user_id", user_id)
+        .in_("status", ["WIN", "LOSS"])
+        .order("created_at", desc=True)
+        .execute()
+    )
+    history = []
+    for row in result.data:
+        outcome = "FORFEIT" if row.get("forfeited") else row["status"]
+        history.append({
+            "puzzleNumber": row["puzzle_number"],
+            "outcome": outcome,
+            "completionTimeSeconds": row["completion_time_seconds"],
+            "playedAt": row["created_at"],
+            # Full connection data so the profile modal can render the solution grid
+            "connections": row["connections"],
+            "previousGuesses": row["previous_guesses"],
+        })
+    return history

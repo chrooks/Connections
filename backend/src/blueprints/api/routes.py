@@ -17,7 +17,7 @@ Associated Functions:
 - get_all_game_data(): Retrieves data for all game sessions.
 """
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 from ...game.game import (
     create_new_game,
     get_game_state,
@@ -26,9 +26,14 @@ from ...game.game import (
     validate_id,
     restart_game,
 )
-from ...services.game_session_service import record_completion_time, forfeit_game
+from ...services.game_session_service import (
+    record_completion_time,
+    forfeit_game,
+    get_user_stats,
+    get_user_history,
+)
 from ...services.puzzle_pool_service import PlayerExhaustedPoolError
-from ...auth.middleware import get_optional_user_id
+from ...auth.middleware import get_optional_user_id, require_auth
 from ...services.utils import parse_and_validate_request, create_response
 
 api_bp = Blueprint("connections", __name__)
@@ -203,3 +208,25 @@ def get_all_game_data():
     """
     games_data = get_all_games_data()
     return create_response(data={"games": games_data})
+
+
+@api_bp.route("/user/stats", methods=["GET"])
+@require_auth
+def user_stats():
+    """
+    Returns aggregate play stats for the authenticated user:
+    wins, losses, forfeits, and average completion time (wins only).
+    """
+    stats = get_user_stats(g.user_id)
+    return create_response(data=stats)
+
+
+@api_bp.route("/user/history", methods=["GET"])
+@require_auth
+def user_history():
+    """
+    Returns all completed game sessions for the authenticated user,
+    ordered newest first. Forfeited games appear with outcome='FORFEIT'.
+    """
+    history = get_user_history(g.user_id)
+    return create_response(data={"history": history})

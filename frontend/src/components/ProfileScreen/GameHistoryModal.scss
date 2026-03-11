@@ -1,0 +1,141 @@
+// GameHistoryModal styles
+
+.game-history-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.game-history-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 460px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  outline: none;
+}
+
+.game-history-modal-content {
+  padding: 1.5rem;
+}
+
+// Header: title row + close button
+.game-history-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.game-history-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.game-history-modal-puzzle {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.game-history-modal-outcome {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+
+  &.outcome-win     { background: #d4edda; color: #1a6130; }
+  &.outcome-loss    { background: #f8d7da; color: #842029; }
+  &.outcome-forfeit { background: #e2e3e5; color: #555; }
+}
+
+.game-history-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.25rem;
+  color: #666;
+  line-height: 1;
+  padding: 0.1rem 0.25rem;
+  flex-shrink: 0;
+
+  &:hover { color: #000; }
+}
+
+.game-history-modal-time {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+// Connection tiles
+.game-history-connections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.game-history-connection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+
+  // Unsolved connections shown as greyed-out with dashed border
+  &--unsolved {
+    background-color: #f0f0f0;
+    border: 2px dashed #ccc;
+    opacity: 0.7;
+  }
+}
+
+.game-history-connection-category {
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.game-history-connection-words {
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+}
+
+// Emoji grid — pre-formatted so newlines render correctly
+.game-history-emoji-grid {
+  white-space: pre;
+  font-size: 1.3rem;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+}
+
+// Copy button
+.game-history-copy-button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #000;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #333;
+  }
+}

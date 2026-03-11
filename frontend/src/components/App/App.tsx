@@ -2,13 +2,18 @@ import React, { useState } from "react";
 import Navbar from "../Navbar/Navbar";
 import ConnectionsGame from "../ConnectionsGame/ConnectionsGame";
 import LandingPage from "../LandingPage/LandingPage";
+import ProfileScreen from "../ProfileScreen/ProfileScreen";
 import { SelectedWordsProvider } from "../../context/SelectedWordsContext";
 import { useAuth } from "../../context/AuthContext";
+
+// Top-level view — 'profile' is only reachable when authenticated
+type AppView = "game" | "profile";
 
 const App: React.FC = () => {
   const { user, loading } = useAuth();
   // Track if user is playing as guest (not persisted)
   const [isGuestMode, setIsGuestMode] = useState(false);
+  const [currentView, setCurrentView] = useState<AppView>("game");
 
   // Handle playing as guest
   const handlePlayAsGuest = () => {
@@ -33,9 +38,14 @@ const App: React.FC = () => {
   return (
     <SelectedWordsProvider>
       <div id="app-container" className="app">
-        <Navbar showLowerNav={!showLandingPage} />
+        <Navbar
+          showLowerNav={!showLandingPage}
+          onNavigateToProfile={() => setCurrentView("profile")}
+        />
         {showLandingPage ? (
           <LandingPage onPlayAsGuest={handlePlayAsGuest} />
+        ) : currentView === "profile" ? (
+          <ProfileScreen onBack={() => setCurrentView("game")} />
         ) : (
           <ConnectionsGame />
         )}
