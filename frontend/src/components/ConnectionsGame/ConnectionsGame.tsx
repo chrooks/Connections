@@ -38,7 +38,7 @@ const ConnectionsGame: React.FC = () => {
   const [solvedOrder, setSolvedOrder] = useState<number[]>([]);
   // Track the current grid word order (preserves order after swaps)
   const [gridWords, setGridWords] = useState<string[]>([]);
-  const { words, loading, error, connections, gameId, puzzleNumber, startNewGame } = useGameState(setMistakesLeft);
+  const { words, loading, error, connections, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef } = useGameState(setMistakesLeft);
   const { selectedWords, addWord, clearWords } = useSelectedWords();
   // Animation phase: null = none, "nudge" = initial bump, "swap" = swapping positions, "fade" = fading out
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>(null);
@@ -69,20 +69,13 @@ const ConnectionsGame: React.FC = () => {
 
   // Initialize or reset gridWords whenever a new game's words arrive.
   // Using only `words` as the dependency ensures re-sync after HMR or a new game.
-  // When restoring an in-progress game, `connections` is batched into the same
-  // React 18 update as `words`, so it already reflects the restored state when
-  // this effect runs — letting us reconstruct solvedOrder from guessed: true entries.
   useEffect(() => {
     if (words.length > 0) {
       setGridWords(words);
-      // Reconstruct solvedOrder for restored sessions: collect indices of connections
-      // that the backend already marks as guessed, in their natural (index) order.
-      // For fresh games every connection has guessed: false, so this produces [].
-      const presolvedIndices = (connections as Connection[])
-        .map((conn, idx) => ({ conn, idx }))
-        .filter(({ conn }) => conn.guessed)
-        .map(({ idx }) => idx);
-      setSolvedOrder(presolvedIndices);
+      // Read solved indices from the ref — it was written synchronously BEFORE
+      // setWords was called in fetchGameState, so by the time this effect runs
+      // it always holds the value for the current game (never the previous one).
+      setSolvedOrder(initialSolvedIndicesRef.current);
       setGuessHistory([]);
       setGameComplete(false);
       setGameResult(null);

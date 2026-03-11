@@ -29,6 +29,11 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
   const [connections, setConnections] = useState<any[]>([]);
   const [gameId, setGameId] = useState<string | null>(null);
   const [puzzleNumber, setPuzzleNumber] = useState<number | null>(null);
+  // Ref holding the solved indices for the game that's currently being loaded.
+  // Set synchronously BEFORE setWords so the `words` effect in ConnectionsGame
+  // always reads the value that belongs to the new game, never the previous one.
+  // Using a ref (not state) avoids any React batching edge cases.
+  const initialSolvedIndicesRef = useRef<number[]>([]);
   // Incrementing this triggers the useEffect to run again, starting a fresh game.
   const [gameKey, setGameKey] = useState<number>(0);
   // Tracks whether the current load was triggered by startNewGame (not initial load).
@@ -72,6 +77,13 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
 
         if (response.ok && jsonResponse.data) {
           const data = jsonResponse.data;
+          // Write solved indices into the ref BEFORE calling setWords.
+          // The `words` effect in ConnectionsGame fires after the render triggered
+          // by setWords, at which point this ref already holds the correct value.
+          initialSolvedIndicesRef.current = (data.connections as any[])
+            .map((conn: any, idx: number) => ({ conn, idx }))
+            .filter(({ conn }: { conn: any }) => conn.guessed)
+            .map(({ idx }: { idx: number }) => idx);
           setWords(data.grid);
           setMistakesLeft(data.mistakesLeft);
           setConnections(data.connections);
@@ -176,7 +188,7 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
     });
   };
 
-  return { words, loading, error, connections, shuffleWords, gameId, puzzleNumber, startNewGame };
+  return { words, loading, error, connections, shuffleWords, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef };
 };
 
 export default useGameState;
