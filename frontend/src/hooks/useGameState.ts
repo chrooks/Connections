@@ -26,6 +26,8 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
   const [words, setWords] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // True when the authenticated player has completed every puzzle in the pool.
+  const [poolExhausted, setPoolExhausted] = useState<boolean>(false);
   const [connections, setConnections] = useState<any[]>([]);
   const [gameId, setGameId] = useState<string | null>(null);
   const [puzzleNumber, setPuzzleNumber] = useState<number | null>(null);
@@ -57,6 +59,10 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
         const jsonResponse = await response.json();
         if (response.ok && jsonResponse.data?.gameId) {
           return jsonResponse.data.gameId;
+        }
+        // Authenticated player has played every available puzzle.
+        if (jsonResponse.code === "POOL_EXHAUSTED") {
+          setPoolExhausted(true);
         }
         return null;
       } catch {
@@ -156,6 +162,7 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
     if (!user) {
       localStorage.removeItem(GUEST_GAME_KEY);
     }
+    setPoolExhausted(false);
     isReloadingRef.current = true;
     toast.loading("Loading next puzzle...", {
       toastId: "next-puzzle-loading",
@@ -188,7 +195,7 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
     });
   };
 
-  return { words, loading, error, connections, shuffleWords, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef };
+  return { words, loading, error, poolExhausted, connections, shuffleWords, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef };
 };
 
 export default useGameState;

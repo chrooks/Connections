@@ -79,6 +79,7 @@ from ..services.game_session_service import (
     add_new_game,
     get_game_from_db,
     get_active_game_for_user,
+    get_completed_puzzle_ids_for_user,
     check_guess,
     reset_game,
     update_game_state,
@@ -97,17 +98,22 @@ def validate_id(game_id):
     return check_game_exists(game_id)
 
 
-def generate_game_grid() -> "tuple[list[str], list[dict], str | None]":
+def generate_game_grid(user_id: "str | None" = None) -> "tuple[list[str], list[dict], str | None]":
     """
     Generates the game grid and connections using a pool-first strategy.
 
     Strategy:
       1. Try to fetch a pre-generated, validated puzzle from the Supabase pool.
          The pool is the primary source once puzzles have been seeded and approved.
+         For authenticated users, puzzles they have already completed (WIN or LOSS)
+         are excluded so they never receive a repeat.
       2. Fall back to the static connections.json when the pool is empty (expected
          during local dev before any puzzles are seeded) or unavailable (network
          error, missing env vars, etc.).
 
+    :param user_id: The authenticated player's UUID, or None for guests. When
+                    provided, already-completed puzzle IDs are fetched and passed
+                    to the pool so the player is never served a repeat.
     :return: A tuple of (grid, connections, puzzle_id) where:
              - grid is a shuffled list of 16 word strings
              - connections is a list of dicts: [{relationship, words, guessed}, ...]
@@ -120,10 +126,32 @@ def generate_game_grid() -> "tuple[list[str], list[dict], str | None]":
     try:
         from ..services.puzzle_pool_service import (
             PuzzlePoolEmptyError,
+            PlayerExhaustedPoolError,
             get_puzzle_from_pool,
         )
 
-        connections, puzzle_id = get_puzzle_from_pool(config_name="classic")
+        # For authenticated users, exclude puzzles they've already completed.
+        # Errors here are non-fatal — we log and fall through to an unrestricted fetch.
+        exclude_ids: "list[str]" = []
+        if user_id:
+            try:
+                exclude_ids = get_completed_puzzle_ids_for_user(user_id)
+                if exclude_ids:
+                    logger.info(
+                        "Excluding %d already-completed puzzles for user %s",
+                        len(exclude_ids), user_id,
+                    )
+            except Exception as e:
+                logger.warning(
+                    "Could not fetch completed puzzle IDs for user %s (%s) — "
+                    "serving without exclusions",
+                    user_id, e,
+                )
+
+        connections, puzzle_id = get_puzzle_from_pool(
+            config_name="classic",
+            exclude_puzzle_ids=exclude_ids,
+        )
         grid = []
         for connection in connections:
             grid.extend(connection["words"])
@@ -144,6 +172,10 @@ def generate_game_grid() -> "tuple[list[str], list[dict], str | None]":
     except ImportError:
         # supabase package not installed — silently fall back during early dev
         logger.warning("supabase package not available; using static fallback")
+    except PlayerExhaustedPoolError:
+        # Player has completed every approved puzzle — propagate so the route
+        # can return a "come back later" response instead of serving static JSON.
+        raise
     except PuzzlePoolEmptyError:
         # Expected during local development before any puzzles have been seeded
         logger.warning("Puzzle pool is empty — falling back to static connections.json")
@@ -213,7 +245,7 @@ def create_new_game(user_id: "str | None" = None) -> dict:
             )
             return get_game_from_db(existing_id)
 
-    grid, connections, puzzle_id = generate_game_grid()
+    grid, connections, puzzle_id = generate_game_grid(user_id=user_id)
     game_id = add_new_game(grid, connections, user_id=user_id, puzzle_id=puzzle_id)
     return get_game_from_db(game_id)
 
@@ -231,15 +263,17 @@ def get_game_state(game_id: str) -> dict:
     return game_state
 
 
-def restart_game(game_id: str) -> dict:
+def restart_game(game_id: str, user_id: "str | None" = None) -> dict:
     """
     Restarts the game specified by this id with a new grid and resets the game state.
     Returns the restarted game state.
 
     :param game_id: The ID of the game session to restart.
+    :param user_id: The authenticated player's UUID, or None for guests. Passed
+                    to generate_game_grid so already-completed puzzles are excluded.
     :return: The restarted game state dict.
     """
-    grid, connections, puzzle_id = generate_game_grid()
+    grid, connections, puzzle_id = generate_game_grid(user_id=user_id)
     return reset_game(game_id, grid, connections, puzzle_id=puzzle_id)
 
 

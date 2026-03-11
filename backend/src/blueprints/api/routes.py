@@ -17,7 +17,7 @@ Associated Functions:
 - get_all_game_data(): Retrieves data for all game sessions.
 """
 
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
 from ...game.game import (
     create_new_game,
     get_game_state,
@@ -27,6 +27,7 @@ from ...game.game import (
     restart_game,
 )
 from ...services.game_session_service import record_completion_time, forfeit_game
+from ...services.puzzle_pool_service import PlayerExhaustedPoolError
 from ...auth.middleware import get_optional_user_id
 from ...services.utils import parse_and_validate_request, create_response
 
@@ -44,7 +45,10 @@ def generate_grid():
     guest requests (no token) create an unowned session.
     """
     user_id = get_optional_user_id()
-    game = create_new_game(user_id=user_id)
+    try:
+        game = create_new_game(user_id=user_id)
+    except PlayerExhaustedPoolError:
+        return jsonify({"error": "You've completed all available puzzles! Check back soon for more.", "code": "POOL_EXHAUSTED"}), 503
 
     if not game:
         return create_response(error="Failed to generate the game grid.", status_code=500)
@@ -134,7 +138,11 @@ def restart():
     if not validate_id(game_id):
         return create_response(error="Invalid game ID.", status_code=404)
 
-    game = restart_game(game_id)
+    user_id = get_optional_user_id()
+    try:
+        game = restart_game(game_id, user_id=user_id)
+    except PlayerExhaustedPoolError:
+        return jsonify({"error": "You've completed all available puzzles! Check back soon for more.", "code": "POOL_EXHAUSTED"}), 503
     return create_response(data=game)
 
 

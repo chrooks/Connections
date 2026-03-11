@@ -38,7 +38,7 @@ const ConnectionsGame: React.FC = () => {
   const [solvedOrder, setSolvedOrder] = useState<number[]>([]);
   // Track the current grid word order (preserves order after swaps)
   const [gridWords, setGridWords] = useState<string[]>([]);
-  const { words, loading, error, connections, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef } = useGameState(setMistakesLeft);
+  const { words, loading, error, poolExhausted, connections, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef } = useGameState(setMistakesLeft);
   const { selectedWords, addWord, clearWords } = useSelectedWords();
   // Animation phase: null = none, "nudge" = initial bump, "swap" = swapping positions, "fade" = fading out
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>(null);
@@ -373,7 +373,7 @@ const ConnectionsGame: React.FC = () => {
       </div>
       {/* Grid shows only remaining unsolved words.
           Suppress loading indicator on end screen — the toast handles feedback instead. */}
-      <GameGrid words={remainingWords} loading={loading && !showEndScreen} error={error} animationPhase={animationPhase} />
+      <GameGrid words={remainingWords} loading={loading && !showEndScreen} error={error} poolExhausted={poolExhausted} animationPhase={animationPhase} />
       {/* Only render mistake tracker, control buttons, and forfeit until end screen shows */}
       {!showEndScreen && (
         <>

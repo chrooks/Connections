@@ -98,11 +98,24 @@ class PuzzlePoolEmptyError(Exception):
     pass
 
 
+class PlayerExhaustedPoolError(PuzzlePoolEmptyError):
+    """
+    Raised when a specific player has already completed every approved puzzle
+    in the pool. Subclasses PuzzlePoolEmptyError so callers that don't need
+    to distinguish the two cases can catch the parent class; callers that do
+    (e.g. routes.py) can catch this more specific class first.
+    """
+    pass
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-def get_puzzle_from_pool(config_name: str = "classic") -> "tuple[list[dict], str]":
+def get_puzzle_from_pool(
+    config_name: str = "classic",
+    exclude_puzzle_ids: "list[str] | None" = None,
+) -> "tuple[list[dict], str]":
     """
     Fetches one random approved puzzle and returns it in the connections format.
 
@@ -110,7 +123,15 @@ def get_puzzle_from_pool(config_name: str = "classic") -> "tuple[list[dict], str
     migration), which atomically:
       1. Selects a random approved puzzle using FOR UPDATE SKIP LOCKED to
          prevent two concurrent requests from serving the same puzzle.
-      2. Increments times_served so the pool can be load-balanced over time.
+      2. Skips any puzzle whose ID appears in exclude_puzzle_ids (already
+         completed by this player).
+      3. Increments times_served so the pool can be load-balanced over time.
+
+    Args:
+        config_name:        Pool config slug to pull from (default "classic").
+        exclude_puzzle_ids: List of puzzle UUIDs to skip — pass the player's
+                            completed puzzle IDs to avoid repeats. An empty
+                            list or None means no exclusions.
 
     Returns:
         A tuple of (connections, puzzle_id) where connections is a list of
@@ -124,7 +145,8 @@ def get_puzzle_from_pool(config_name: str = "classic") -> "tuple[list[dict], str
         the new game_session back to the pool puzzle it was drawn from.
 
     Raises:
-        PuzzlePoolEmptyError: No approved puzzles exist for this config.
+        PuzzlePoolEmptyError: No approved puzzles exist for this config (or all
+                              approved puzzles have already been played).
         ValueError:           config_name doesn't match any puzzle_configs row.
         RuntimeError:         Puzzle exists but has no groups (data integrity issue).
     """
@@ -132,14 +154,21 @@ def get_puzzle_from_pool(config_name: str = "classic") -> "tuple[list[dict], str
     config_id = _get_config_id(supabase, config_name)
 
     # Call the atomic DB function — returns the UUID of the selected puzzle,
-    # or None if the pool is empty for this config.
+    # or None if the pool is empty / all approved puzzles are excluded.
     rpc_result = supabase.rpc(
         "get_random_approved_puzzle",
-        {"p_config_id": config_id},
+        {
+            "p_config_id": config_id,
+            "p_exclude_ids": exclude_puzzle_ids or [],
+        },
     ).execute()
 
     puzzle_id = rpc_result.data
     if not puzzle_id:
+        if exclude_puzzle_ids:
+            raise PlayerExhaustedPoolError(
+                f"Player has completed all approved puzzles for config '{config_name}'."
+            )
         raise PuzzlePoolEmptyError(
             f"No approved puzzles in the pool for config '{config_name}'. "
             "Seed puzzles via seed_puzzle_to_pool() and approve them first."

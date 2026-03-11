@@ -195,6 +195,26 @@ def get_active_game_for_user(user_id: str) -> "str | None":
     return result.data[0]["id"] if result.data else None
 
 
+def get_completed_puzzle_ids_for_user(user_id: str) -> "list[str]":
+    """
+    Returns the puzzle_ids for all completed (WIN or LOSS) game sessions
+    belonging to this user where a pool puzzle was served (puzzle_id IS NOT NULL).
+
+    Used by generate_game_grid to exclude already-played puzzles so a player
+    is never served the same puzzle twice.
+    """
+    supabase = _get_client()
+    result = (
+        supabase.table("game_sessions")
+        .select("puzzle_id")
+        .eq("user_id", user_id)
+        .in_("status", ["WIN", "LOSS"])
+        .filter("puzzle_id", "not.is", "null")
+        .execute()
+    )
+    return [row["puzzle_id"] for row in result.data]
+
+
 def check_guess(
     game_id: str, guess: "list[str]"
 ) -> "tuple[bool, bool, bool, str]":

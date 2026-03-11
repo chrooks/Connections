@@ -7,6 +7,7 @@ interface GameGridProps {
   words: string[];
   loading: boolean;
   error: string | null;
+  poolExhausted: boolean;
   animationPhase: AnimationPhase; // Current animation phase for selected cards
 }
 
@@ -74,7 +75,7 @@ function calculateSwapTargets(
  * GameGrid component to display a grid of word cards.
  * Renders words in a 4x4 grid with animation support for submissions.
  */
-const GameGrid: React.FC<GameGridProps> = ({ words, loading, error, animationPhase }) => {
+const GameGrid: React.FC<GameGridProps> = ({ words, loading, error, poolExhausted, animationPhase }) => {
   const { selectedWords } = useSelectedWords();
 
   // Calculate swap targets when in swap phase
@@ -88,6 +89,18 @@ const GameGrid: React.FC<GameGridProps> = ({ words, loading, error, animationPha
 
   if (loading) {
     return <div id="game-grid-loading">Loading...</div>;
+  }
+
+  if (poolExhausted) {
+    return (
+      <div id="pool-exhausted-container" className="pool-exhausted-container">
+        <p id="pool-exhausted-emoji" className="pool-exhausted-emoji">🧩</p>
+        <h2 id="pool-exhausted-heading" className="pool-exhausted-heading">You're all caught up!</h2>
+        <p id="pool-exhausted-message" className="pool-exhausted-message">
+          You've completed every available puzzle. Check back soon — new ones are on the way!
+        </p>
+      </div>
+    );
   }
 
   if (error) {
