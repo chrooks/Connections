@@ -352,7 +352,7 @@ const ConnectionsGame: React.FC = () => {
 
   return (
     <div id="connections-game-container" className="game container">
-      <ToastContainer />
+      <ToastContainer position="top-center" theme="dark" hideProgressBar closeButton={false} icon={false} autoClose={1500} />
       {/* Show timer once words are loaded; stays visible (frozen) on end screen */}
       {words.length > 0 && <PuzzleTimer seconds={elapsedSeconds} />}
       <span id="game-instructions" className="game-instructions"> Create four groups of four!</span>

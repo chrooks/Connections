@@ -1,3 +1,26 @@
+// ── Toast styling ─────────────────────────────────────────────────────────────
+// $toast-top-offset  — distance from the top of the viewport
+// autoClose prop on <ToastContainer> — how long (ms) before it disappears
+$toast-top-offset: 5rem;
+
+.Toastify__toast-container--top-center {
+  top: $toast-top-offset !important;
+  // Shrink the container to hug the toast content width
+  width: fit-content !important;
+}
+
+.Toastify__toast {
+  // Shrink each toast to its text width (with comfortable padding)
+  width: fit-content;
+  min-width: unset;
+  text-align: center;
+}
+
+.Toastify__toast-body {
+  text-align: center;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 .game {
   display: flex;
   flex-direction: column;

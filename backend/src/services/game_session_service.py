@@ -217,15 +217,16 @@ def get_completed_puzzle_ids_for_user(user_id: str) -> "list[str]":
 
 def check_guess(
     game_id: str, guess: "list[str]"
-) -> "tuple[bool, bool, bool, str]":
+) -> "tuple[bool, bool, bool, bool, str]":
     """
     Validates a 4-word guess against the current game state.
 
     Returns:
-        (is_correct, is_valid, is_new, error_message)
+        (is_correct, is_valid, is_new, is_one_away, error_message)
         - is_correct:    guess exactly matches one of the unsolved connections
         - is_valid:      guess passes all format/content checks
         - is_new:        guess has not been submitted before
+        - is_one_away:   guess shares exactly 3 words with an unsolved connection
         - error_message: non-empty string when is_valid is False
     """
     row = _fetch_game_row(game_id)
@@ -233,14 +234,14 @@ def check_guess(
         raise ValueError("Game not found with the provided game ID.")
 
     if row["status"] != "IN_PROGRESS":
-        return False, False, False, "Game is not in progress."
+        return False, False, False, False, "Game is not in progress."
 
     if len(guess) != 4:
-        return False, False, False, "Guess must contain exactly four words."
+        return False, False, False, False, "Guess must contain exactly four words."
     if not all(word in row["grid"] for word in guess):
-        return False, False, False, "All words in the guess must be in the game grid."
+        return False, False, False, False, "All words in the guess must be in the game grid."
     if len(set(guess)) != 4:
-        return False, False, False, "Guess must not contain duplicate words."
+        return False, False, False, False, "Guess must not contain duplicate words."
 
     guess_set = set(guess)
 
@@ -254,11 +255,18 @@ def check_guess(
         set(c["words"]) == guess_set for c in row["connections"]
     )
 
-    logger.debug(
-        "check_guess game=%s is_correct=%s is_new=%s guess=%s",
-        game_id, is_correct, is_new, guess,
+    # Detect "one away": guess overlaps exactly 3 words with any unsolved connection
+    is_one_away = not is_correct and any(
+        len(guess_set & set(c["words"])) == 3
+        for c in row["connections"]
+        if not c.get("guessed", False)
     )
-    return is_correct, True, is_new, ""
+
+    logger.debug(
+        "check_guess game=%s is_correct=%s is_new=%s is_one_away=%s guess=%s",
+        game_id, is_correct, is_new, is_one_away, guess,
+    )
+    return is_correct, True, is_new, is_one_away, ""
 
 
 def update_game_state(game_id: str, guess: "list[str]", is_correct: bool) -> None:

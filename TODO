@@ -1,11 +1,11 @@
-[X] - Next puzzle button in results screen.
+[ ] - Admin mode where I can test and approve puzzles/ optionally see answers & approval scores
 [ ] - Profile screen where you can see previous puzzle results & stats
-[ ] - "We're out of puzzles, come back later" screen when there are no more puzzles to pull from pool
-[X] - Timer to show players how long they took to solve the puzzle
-[X] - Forfeit button
 [ ] - Feedback button 
         - This puzzle Too Easy - Impossible
         - Incorrect connection
-[ ] - Move & style notification toast
-[ ] - Add Toast for "One away"
-[ ] - Admin mode where I can test and approve puzzles/ optionally see answers & approval scores
+[X] - Move & style notification toast
+[X] - Add Toast for "One away"
+[X] - "We're out of puzzles, come back later" screen when there are no more puzzles to pull from pool
+[X] - Timer to show players how long they took to solve the puzzle
+[X] - Forfeit button
+[X] - Next puzzle button in results screen.

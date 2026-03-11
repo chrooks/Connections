@@ -86,7 +86,7 @@ def submit_guess():
         )
 
     # Process the guess and update the game state
-    game_state, is_valid, is_correct, is_new, error_message = process_guess(game_id, guess)
+    game_state, is_valid, is_correct, is_new, is_one_away, error_message = process_guess(game_id, guess)
     if not is_valid:
         return create_response(error="Invalid guess: " + error_message, status_code=400)
 
@@ -98,6 +98,7 @@ def submit_guess():
         },
         "isCorrect": is_correct,
         "isNewGuess": is_new,
+        "isOneAway": is_one_away,
     }
     return create_response(data=response_data)
 

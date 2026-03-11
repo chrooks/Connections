@@ -7,6 +7,7 @@ import { apiPost } from "../lib/api";
 export interface SubmitGuessResult {
   isCorrect: boolean;
   isNewGuess: boolean;
+  isOneAway: boolean;
   guessedConnections: boolean[];
 }
 
@@ -66,13 +67,22 @@ const useSubmitGuess = (
           });
         } else if (!responseData.isCorrect) {
           console.log("Guess is incorrect");
-          toast.error("Guess is incorrect!");
+          if (responseData.isOneAway) {
+            toast("One away!", {
+              theme: "dark",
+              icon: false,
+              hideProgressBar: true,
+            });
+          } else {
+            toast.error("Guess is incorrect!");
+          }
         }
 
         // Return result for animation chaining
         return {
           isCorrect: responseData.isCorrect,
           isNewGuess: responseData.isNewGuess,
+          isOneAway: responseData.isOneAway,
           guessedConnections: responseData.gameState.guessedConnections,
         };
       }

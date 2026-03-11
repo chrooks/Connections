@@ -202,26 +202,27 @@ def generate_game_grid(user_id: "str | None" = None) -> "tuple[list[str], list[d
     return grid, connections, None
 
 
-def process_guess(game_id: str, guess: "list[str]") -> "tuple[dict, bool, bool, bool, str]":
+def process_guess(game_id: str, guess: "list[str]") -> "tuple[dict, bool, bool, bool, bool, str]":
     """
     Validates the guess and updates the game state by calling the respective functions from game_session_service.py.
     Returns the updated game state, a boolean confirming whether the guess is valid, whether the guess was correct,
-    whether the guess was new, and an error message if the guess is invalid.
+    whether the guess was new, whether the guess was one away, and an error message if the guess is invalid.
     :param game_id: The ID of the game session where the guess is being made.
     :param guess: A list of four words that represent the player's guess.
     :return: A tuple containing the updated game state,
                                 a boolean indicating if the guess was valid,
                                 a boolean indicating if the guess was correct,
                                 a boolean indicating if the guess was new,
+                                a boolean indicating if the guess was one word away from a connection,
                                 and an error message if the guess is invalid.
     """
-    is_correct, is_valid, is_new, error_message = check_guess(game_id, guess)
+    is_correct, is_valid, is_new, is_one_away, error_message = check_guess(game_id, guess)
     if not is_valid:
-        return None, is_valid, False, is_new, error_message
+        return None, is_valid, False, is_new, False, error_message
 
     update_game_state(game_id, guess, is_correct)
     game_state = get_game_from_db(game_id)
-    return game_state, is_valid, is_correct, is_new, ""
+    return game_state, is_valid, is_correct, is_new, is_one_away, ""
 
 
 def create_new_game(user_id: "str | None" = None) -> dict:
