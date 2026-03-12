@@ -114,6 +114,37 @@ supabase db push
 
 `db push` tracks which migrations have been applied and only runs new ones — safe to run repeatedly. Never leave a migration file uncommitted or unapplied; an unapplied migration means the Python code and the live database are out of sync, causing 500 errors at runtime.
 
+## Deployment
+
+See [docs/deployment.md](docs/deployment.md) for the full guide. Summary:
+
+- **Frontend** → Vercel (free static hosting; `vite build` → `dist/`)
+- **Flask API** → Railway or Render using `backend/Dockerfile.api` (~$5–7/mo)
+- **Worker** → GitHub Actions nightly cron using the batch generator path (free)
+- **Database + Auth** → Supabase (already in use)
+
+### Dependency split
+
+The backend has two requirements files with different purposes:
+
+| File | Used by | Notable exclusions |
+|---|---|---|
+| `backend/requirements-api.txt` | API container | `torch`, `nvidia-*`, `sentence-transformers`, `anthropic`, `scikit-learn` |
+| `backend/requirements.txt` | Worker container | Nothing — full stack |
+
+The Flask API never calls `embedding_validator`, `validation_pipeline`, or any generation
+code — it only writes rows to the job queue. This keeps the API Docker image small (~200 MB).
+
+### Docker images
+
+```
+backend/Dockerfile.api     — lightweight API image (python:3.12-slim + requirements-api.txt)
+backend/Dockerfile.worker  — full worker image (python:3.12-slim + requirements.txt + baked model)
+```
+
+The worker image bakes `all-mpnet-base-v2` (~420 MB) into the image at build time via
+`TRANSFORMERS_CACHE` + a `RUN python -c "SentenceTransformer('all-mpnet-base-v2')"` layer.
+
 ## Important Notes
 
 - **Update the knowledge journal** refer to user-level CLAUDE.md for instructions

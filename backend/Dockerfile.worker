@@ -1,0 +1,31 @@
+# Worker — full image with ML stack (torch, sentence-transformers, anthropic, etc.).
+# Larger image (~3-4 GB) because of torch + sentence-transformers + baked model.
+# Build context: backend/
+#
+#   docker build -f Dockerfile.worker -t connections-worker .
+#   docker run --env-file .env connections-worker
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install uv for fast dependency resolution, then install the full dep stack.
+# torch and sentence-transformers are large — expect a slow first build.
+COPY requirements.txt .
+RUN pip install --no-cache-dir uv \
+    && uv pip install --system --no-cache-dir -r requirements.txt
+
+COPY src/ src/
+
+# Unbuffered output so logs appear in real time in Docker/Railway.
+ENV PYTHONUNBUFFERED=1
+
+# Set cache path before the download RUN so the model lands inside the image layer,
+# not in the default ~/.cache which gets discarded between container restarts.
+ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+
+# Bake the sentence-transformer model into the image at build time (~420 MB).
+# This avoids a slow network download on every container start.
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-mpnet-base-v2')"
+
+CMD ["python", "-m", "src.workers.run_workers"]

@@ -1,0 +1,25 @@
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Virtual environment — dependencies are installed fresh inside the image
+.venv/
+
+# Secrets — never bake into the image; inject at runtime via --env-file or platform secrets
+.env
+
+# Local dev / tooling state
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Test outputs and local validation runs — not needed at runtime
+validation_runs/
+
+# Database migrations are applied separately via `supabase db push`, not at container start
+supabase/
+
+# Docs
+*.md

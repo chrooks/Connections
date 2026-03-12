@@ -213,6 +213,22 @@ Or query Supabase directly for breakdowns by model or source.
 
 See [docs/API.md](docs/API.md) for full request/response details.
 
+## Deployment
+
+The recommended production stack is:
+
+- **Frontend** → [Vercel](https://vercel.com) (free, static hosting)
+- **Flask API** → [Railway](https://railway.app) or Render (~$5–7/mo)
+- **Worker** → GitHub Actions nightly cron (free, uses Anthropic Batch API)
+- **Database + Auth** → Supabase (already there)
+
+Docker images for the API and worker are in `backend/Dockerfile.api` and
+`backend/Dockerfile.worker`. The API image is lightweight (~200 MB) because the
+ML stack (`torch`, `sentence-transformers`, etc.) is kept in the worker image only.
+
+See [docs/deployment.md](docs/deployment.md) for full step-by-step instructions,
+environment variable reference, and the GitHub Actions workflow.
+
 ## Testing
 
 ```bash

@@ -1,7 +1,9 @@
-[X] - Admin mode where I can test and approve puzzles/ optionally see answers & approval scores
 [ ] - Feedback button 
         - This puzzle Too Easy - Impossible
         - Incorrect connection
+[ ] - Ratelimiting/Other security features I'm not aware of
+[X] - Figure out the easiest/cheapest way to deploy and host this lol
+[X] - Admin mode where I can test and approve puzzles/ optionally see answers & approval scores
 [X] - Profile screen where you can see previous puzzle results & stats
 [X] - Move & style notification toast
 [X] - Add Toast for "One away"

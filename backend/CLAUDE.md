@@ -61,6 +61,25 @@ pip install uv          # one-time setup
 uv pip install -r requirements.txt
 ```
 
+**Dependency split — two requirements files:**
+
+| File | Use case | Includes |
+|---|---|---|
+| `requirements-api.txt` | Flask API container | Flask, Supabase, PyJWT, etc. |
+| `requirements.txt` | Worker container (full) | Everything above + torch, sentence-transformers, anthropic, scikit-learn |
+
+The Flask API never calls `embedding_validator`, `validation_pipeline`, or any generation
+code — the admin routes only write rows to the job queue. This means the API container
+doesn't need the ~2-3 GB ML stack.
+
+```bash
+# API only (lightweight):
+uv pip install -r requirements-api.txt
+
+# Worker (full stack):
+uv pip install -r requirements.txt
+```
+
 ### 3. Configure environment
 
 ```bash
