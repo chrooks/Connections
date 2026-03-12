@@ -1,4 +1,4 @@
-[ ] - Rate limiting (flask-limiter, per-IP on generate-grid & submit-guess, ~60 req/min)  
+[X] - Rate limiting (flask-limiter, per-IP on generate-grid & submit-guess, ~60 req/min)
 [ ] - game-status strips answers from unguessed connections (game integrity / anti-cheat)  
 [ ] - Remove or load admin email from env var in frontend adminUtils.ts (exposed in bundle)  
 [ ] - Harden debug mode: replace debug=True with os.getenv("FLASK_DEBUG") check in app.py  

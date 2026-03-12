@@ -36,11 +36,13 @@ from ...services.game_session_service import (
 from ...services.puzzle_pool_service import PlayerExhaustedPoolError
 from ...auth.middleware import get_optional_user_id, require_auth
 from ...services.utils import parse_and_validate_request, create_response
+from ...extensions import limiter
 
 api_bp = Blueprint("connections", __name__)
 
 
 @api_bp.route("/generate-grid", methods=["GET"])
+@limiter.limit("30 per minute")
 def generate_grid():
     """
     Generates a new game grid with randomly selected words upon receiving a GET request.
@@ -77,6 +79,7 @@ def generate_grid():
 
 
 @api_bp.route("/submit-guess", methods=["POST"])
+@limiter.limit("60 per minute")
 def submit_guess():
     """
     Receives a guess from the player and validates it against the game's connections.

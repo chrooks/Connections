@@ -19,6 +19,7 @@ exceptiongroup==1.2.1
 filelock==3.19.1
 flask==3.0.3
 flask-cors==6.0.2
+flask-limiter==3.11.0
 flask-sqlalchemy==3.1.1
 frozenlist==1.8.0
 fsspec==2025.10.0

@@ -27,6 +27,7 @@ logging.basicConfig(
 )
 logging.getLogger("src").setLevel(logging.DEBUG)
 from flask_cors import CORS
+from .extensions import limiter
 from .blueprints.api.routes import api_bp
 from .blueprints.admin.routes import admin_bp
 from .services.utils import create_response
@@ -40,8 +41,15 @@ def create_app():
         if o.strip()
     ]
     CORS(app, origins=allowed_origins)
+
+    limiter.init_app(app)
+
     app.register_blueprint(api_bp, url_prefix="/connections")
     app.register_blueprint(admin_bp, url_prefix="/admin")
+
+    @app.errorhandler(429)
+    def rate_limit_exceeded(e):
+        return create_response(error="Too many requests. Please slow down.", status_code=429)
 
     @app.route("/")
     def index():

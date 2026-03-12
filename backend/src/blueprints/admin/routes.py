@@ -14,6 +14,7 @@ from flask import Blueprint, request
 
 from ...services.utils import create_response
 from ...auth.middleware import require_admin
+from ...extensions import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ admin_bp = Blueprint("admin", __name__)
 
 @admin_bp.route("/generate-puzzles", methods=["POST"])
 @require_admin
+@limiter.limit("10 per minute")
 def queue_puzzle_generation():
     """
     Queue puzzle generation jobs.
