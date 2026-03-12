@@ -2,6 +2,7 @@
         - This puzzle Too Easy - Impossible
         - Incorrect connection
 [ ] - Ratelimiting/Other security features I'm not aware of
+[ ] - Update docs/Readme/CLAUDE.md
 [X] - Figure out the easiest/cheapest way to deploy and host this lol
 [X] - Admin mode where I can test and approve puzzles/ optionally see answers & approval scores
 [X] - Profile screen where you can see previous puzzle results & stats

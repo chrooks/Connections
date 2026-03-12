@@ -101,6 +101,22 @@ The frontend runs at `http://localhost:5173`.
 4. A correct guess reveals the category; an incorrect one costs a mistake (you have 4)
 5. Win by finding all four groups, or see the reveal on a loss
 
+## Documentation
+
+### Codemaps
+
+For comprehensive architectural documentation, see the codemaps in [`docs/CODEMAPS/`](docs/CODEMAPS/):
+
+- **[INDEX](docs/CODEMAPS/INDEX.md)** — Overview of all architectural areas
+- **[Frontend](docs/CODEMAPS/frontend.md)** — React/TypeScript components, state management, auth
+- **[Backend](docs/CODEMAPS/backend.md)** — Flask API, game logic, services, database layer
+- **[Generation Pipeline](docs/CODEMAPS/generation.md)** — AI puzzle generation (worker & batch paths), validation
+- **[Database Schema](docs/CODEMAPS/database.md)** — Supabase tables, migrations, queries
+- **[API Reference](docs/CODEMAPS/api.md)** — All endpoints, request/response formats, error codes
+- **[Authentication](docs/CODEMAPS/auth.md)** — JWT, guest mode, admin access control
+
+**Start here:** [docs/CODEMAPS/INDEX.md](docs/CODEMAPS/INDEX.md)
+
 ## Architecture Notes
 
 ### Supabase for Everything

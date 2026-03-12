@@ -5,16 +5,31 @@
 This is a web-based Connections game inspired by the NY Times, where players identify connections between words in a grid.
 
 **Tech Stack:**
-- **Frontend:** React + TypeScript + Vite + Supabase
-- **Backend:** Python + Flask + SQLite
-- **Architecture:** Separate frontend/backend with REST API communication
+- **Frontend:** React 18 + TypeScript + Vite + Supabase Auth
+- **Backend:** Python 3.10+ + Flask + Supabase (PostgreSQL)
+- **Puzzle Gen:** Claude (Anthropic API) + sentence-transformers (validation)
+- **Architecture:** React frontend ↔ Flask REST API ↔ Supabase PostgreSQL
+
+## Documentation
+
+**Start with the architectural codemaps** in `docs/CODEMAPS/`:
+- **[INDEX.md](docs/CODEMAPS/INDEX.md)** — Architecture overview, tech stack, key patterns
+- **[Frontend.md](docs/CODEMAPS/frontend.md)** — Component hierarchy, state management, API integration
+- **[Backend.md](docs/CODEMAPS/backend.md)** — Flask routes, services, game logic, workers
+- **[Generation.md](docs/CODEMAPS/generation.md)** — Puzzle generation pipeline (two paths), validation, costs
+- **[Database.md](docs/CODEMAPS/database.md)** — Schema, relationships, queries, migrations
+- **[API.md](docs/CODEMAPS/api.md)** — 10 game + 4 admin endpoints with examples
+- **[Auth.md](docs/CODEMAPS/auth.md)** — JWT, guest mode, RBAC patterns
+
+Each codemap covers one area deeply and links to related codemaps. Read the INDEX first, then dive into specific areas as needed.
 
 ## Project Structure
 
 ```
-/backend/       - Flask API server, game logic, database
-/frontend/      - React/TypeScript UI with Vite
-/docs/          - Project documentation
+/backend/       - Flask API server, game logic, worker processes
+/frontend/      - React/TypeScript UI with Vite, Supabase auth
+/docs/          - Architecture codemaps and deployment guides
+  /CODEMAPS/    - Detailed architectural documentation (7 files)
 ```
 
 ## Development Workflow
