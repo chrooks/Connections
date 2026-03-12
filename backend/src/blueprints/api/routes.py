@@ -41,6 +41,28 @@ from ...extensions import limiter
 api_bp = Blueprint("connections", __name__)
 
 
+def _sanitize_game_state(game: dict) -> dict:
+    """
+    Strip answers from unguessed connections before sending to the client.
+
+    While a game is IN_PROGRESS, the frontend has no legitimate need to know
+    the words or category name of unsolved groups — that information is only
+    used server-side for guess validation. Exposing it lets anyone read the
+    answers from the network tab without playing.
+
+    Once the game ends (WIN or LOSS) we send full data so the frontend can
+    run the auto-reveal animation and results modal correctly.
+    """
+    if game.get("status") != "IN_PROGRESS":
+        return game
+
+    sanitized_connections = [
+        conn if conn.get("guessed") else {"guessed": False}
+        for conn in game.get("connections", [])
+    ]
+    return {**game, "connections": sanitized_connections}
+
+
 @api_bp.route("/generate-grid", methods=["GET"])
 @limiter.limit("30 per minute")
 def generate_grid():
@@ -140,7 +162,7 @@ def game_status():
         return create_response(error="Invalid game ID.", status_code=404)
 
     game = get_game_state(game_id)
-    return create_response(data=game)
+    return create_response(data=_sanitize_game_state(game))
 
 
 @api_bp.route("/restart-game", methods=["POST"])
@@ -172,7 +194,7 @@ def restart():
         game = restart_game(game_id, user_id=user_id)
     except PlayerExhaustedPoolError:
         return jsonify({"error": "You've completed all available puzzles! Check back soon for more.", "code": "POOL_EXHAUSTED"}), 503
-    return create_response(data=game)
+    return create_response(data=_sanitize_game_state(game))
 
 
 @api_bp.route("/forfeit-game", methods=["POST"])
