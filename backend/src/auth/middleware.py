@@ -22,6 +22,14 @@ logger = logging.getLogger(__name__)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 
+# Comma-separated list of email addresses that are allowed to access admin endpoints.
+# Example: ADMIN_EMAILS=you@example.com,other@example.com
+ADMIN_EMAILS = {
+    e.strip().lower()
+    for e in os.getenv("ADMIN_EMAILS", "").split(",")
+    if e.strip()
+}
+
 # Used only for HS256 tokens (older Supabase projects).
 # Newer projects use RS256 and verify via JWKS — the secret is not needed for those.
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
@@ -120,6 +128,57 @@ def require_auth(f):
             return create_response(error="Token has expired", status_code=401)
         except jwt.InvalidTokenError as e:
             return create_response(error=f"Invalid token: {str(e)}", status_code=401)
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def require_admin(f):
+    """
+    Decorator that requires a valid Supabase JWT AND that the authenticated
+    user's email appears in the ADMIN_EMAILS environment variable.
+
+    Returns 401 if the token is missing or invalid, 403 if the user is
+    authenticated but not in ADMIN_EMAILS.
+
+    Usage:
+        @admin_bp.route("/protected")
+        @require_admin
+        def protected_route():
+            user_id = g.user_id
+            ...
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth_header = request.headers.get("Authorization")
+
+        if not auth_header:
+            return create_response(error="Missing Authorization header", status_code=401)
+
+        parts = auth_header.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            return create_response(error="Invalid Authorization header format", status_code=401)
+
+        token = parts[1]
+
+        try:
+            payload = _decode_supabase_token(token)
+
+            user_id = payload.get("sub")
+            if not user_id:
+                return create_response(error="Invalid token: missing user ID", status_code=401)
+
+            g.user_id = user_id
+            g.user_email = payload.get("email")
+
+        except jwt.ExpiredSignatureError:
+            return create_response(error="Token has expired", status_code=401)
+        except jwt.InvalidTokenError as e:
+            return create_response(error=f"Invalid token: {str(e)}", status_code=401)
+
+        if not g.user_email or g.user_email.lower() not in ADMIN_EMAILS:
+            return create_response(error="Admin access required", status_code=403)
 
         return f(*args, **kwargs)
 

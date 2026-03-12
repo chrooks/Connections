@@ -1,8 +1,8 @@
 [ ] - Admin mode where I can test and approve puzzles/ optionally see answers & approval scores
-[ ] - Profile screen where you can see previous puzzle results & stats
 [ ] - Feedback button 
         - This puzzle Too Easy - Impossible
         - Incorrect connection
+[X] - Profile screen where you can see previous puzzle results & stats
 [X] - Move & style notification toast
 [X] - Add Toast for "One away"
 [X] - "We're out of puzzles, come back later" screen when there are no more puzzles to pull from pool

@@ -219,6 +219,25 @@
   word-break: break-word;
 }
 
+// Admin link in dropdown — only shown for admin users
+.user-menu-admin-link {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #333;
+  font-weight: 600;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f5f5f5;
+  }
+}
+
 // Logout button in dropdown
 .user-menu-logout {
   width: 100%;

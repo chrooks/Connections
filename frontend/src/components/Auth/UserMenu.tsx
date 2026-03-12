@@ -12,9 +12,10 @@ import "./Auth.scss";
 
 interface UserMenuProps {
   onNavigateToProfile?: () => void;
+  onNavigateToAdmin?: () => void;
 }
 
-const UserMenu: React.FC<UserMenuProps> = ({ onNavigateToProfile }) => {
+const UserMenu: React.FC<UserMenuProps> = ({ onNavigateToProfile, onNavigateToAdmin }) => {
   const { user, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -57,6 +58,19 @@ const UserMenu: React.FC<UserMenuProps> = ({ onNavigateToProfile }) => {
           >
             {user.email}
           </button>
+          {/* Admin link — only rendered when the parent passes the callback (admin users only) */}
+          {onNavigateToAdmin && (
+            <button
+              id="user-menu-admin-link"
+              className="user-menu-admin-link"
+              onClick={() => {
+                onNavigateToAdmin();
+                setIsOpen(false);
+              }}
+            >
+              Admin
+            </button>
+          )}
           <button
             id="sign-out-button"
             onClick={() => {

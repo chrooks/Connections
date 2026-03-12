@@ -85,6 +85,15 @@ const GameHistoryModal: React.FC<GameHistoryModalProps> = ({ entry, onClose }) =
                 {entry.puzzleNumber !== null
                   ? `Puzzle #${entry.puzzleNumber}`
                   : "Practice"}
+                {entry.puzzleModifiedSincePlayed && (
+                  <span
+                    id={`game-history-modal-modified-badge-${entry.gameId}`}
+                    className="history-modified-badge"
+                    title="This puzzle was edited after you played it"
+                  >
+                    {" "}⚠
+                  </span>
+                )}
               </span>
               <span
                 id="game-history-modal-outcome"

@@ -102,6 +102,18 @@ npm run dev
 - Commits: Descriptive messages following existing style
 - Testing: Ensure both frontend and backend work together before committing
 
+## Database Migrations
+
+Migrations live in `backend/supabase/migrations/` as timestamped SQL files.
+**After writing any new migration file, always apply it immediately:**
+
+```bash
+cd backend
+supabase db push
+```
+
+`db push` tracks which migrations have been applied and only runs new ones — safe to run repeatedly. Never leave a migration file uncommitted or unapplied; an unapplied migration means the Python code and the live database are out of sync, causing 500 errors at runtime.
+
 ## Important Notes
 
 - **Update the knowledge journal** refer to user-level CLAUDE.md for instructions

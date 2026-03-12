@@ -16,11 +16,18 @@ const GUEST_GAME_KEY = "guestGameId";
  *   - Guests: game ID is stored in localStorage for single-device persistence.
  *     Completed (WIN/LOSS) games are automatically cleared so the next refresh
  *     starts fresh.
+ *   - Admin play-test: when reviewGameId is provided, the hook skips /generate-grid
+ *     entirely and loads the pre-created review game session directly.
  *
  * @param setMistakesLeft - A function to update the mistakesLeft state.
+ * @param reviewGameId    - Optional game ID for admin play-test mode. When set,
+ *                          the hook loads this specific game instead of creating/resuming.
  * @returns words, loading, error, connections, gameId, puzzleNumber, shuffleWords
  */
-const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
+const useGameState = (
+  setMistakesLeft: (mistakesLeft: number) => void,
+  reviewGameId: string | null = null,
+) => {
   const { user, loading: authLoading } = useAuth();
 
   const [words, setWords] = useState<string[]>([]);
@@ -107,6 +114,20 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
      */
     const initializeGame = async () => {
       try {
+        // Admin play-test mode: skip /generate-grid and load the pre-created
+        // review game session directly. The game session was created by
+        // POST /admin/puzzles/<id>/start-review-game before this hook ran.
+        if (reviewGameId) {
+          const result = await fetchGameState(reviewGameId);
+          if (result.success) {
+            setGameId(reviewGameId);
+          } else {
+            setError("Failed to load review game");
+          }
+          setLoading(false);
+          return;
+        }
+
         // Guests: attempt to resume from localStorage
         if (!user) {
           const savedId = localStorage.getItem(GUEST_GAME_KEY);
@@ -150,7 +171,7 @@ const useGameState = (setMistakesLeft: (mistakesLeft: number) => void) => {
     };
 
     initializeGame();
-  }, [authLoading, user, gameKey, setMistakesLeft]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authLoading, user, gameKey, reviewGameId, setMistakesLeft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Starts a fresh game session. For guests, clears the saved localStorage game

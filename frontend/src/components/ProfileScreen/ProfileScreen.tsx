@@ -166,6 +166,15 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
                         {entry.puzzleNumber !== null
                           ? `#${entry.puzzleNumber}`
                           : "Practice"}
+                        {entry.puzzleModifiedSincePlayed && (
+                          <span
+                            id={`history-modified-badge-${entry.gameId}`}
+                            className="history-modified-badge"
+                            title="This puzzle was edited after you played it"
+                          >
+                            {" "}⚠
+                          </span>
+                        )}
                       </span>
 
                       <span

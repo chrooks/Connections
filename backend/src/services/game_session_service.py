@@ -484,7 +484,7 @@ def get_user_history(user_id: str) -> "list[dict]":
     result = (
         supabase.table("game_sessions")
         .select(
-            "puzzle_number, status, forfeited, completion_time_seconds, "
+            "id, puzzle_id, puzzle_number, status, forfeited, completion_time_seconds, "
             "created_at, connections, previous_guesses"
         )
         .eq("user_id", user_id)
@@ -492,10 +492,33 @@ def get_user_history(user_id: str) -> "list[dict]":
         .order("created_at", desc=True)
         .execute()
     )
+    rows = result.data
+
+    # Batch-fetch edited_at for all puzzles referenced in this history,
+    # then join in Python to avoid N+1 queries.
+    puzzle_ids = list({r["puzzle_id"] for r in rows if r.get("puzzle_id")})
+    edited_at_by_puzzle: dict = {}
+    if puzzle_ids:
+        puzzles_result = (
+            supabase.table("puzzles")
+            .select("id, edited_at")
+            .in_("id", puzzle_ids)
+            .execute()
+        )
+        edited_at_by_puzzle = {
+            p["id"]: p.get("edited_at")
+            for p in (puzzles_result.data or [])
+        }
+
     history = []
-    for row in result.data:
+    for row in rows:
         outcome = "FORFEIT" if row.get("forfeited") else row["status"]
+        puzzle_edited_at = edited_at_by_puzzle.get(row.get("puzzle_id"))
+        puzzle_modified = bool(
+            puzzle_edited_at and puzzle_edited_at > row["created_at"]
+        )
         history.append({
+            "gameId": row["id"],
             "puzzleNumber": row["puzzle_number"],
             "outcome": outcome,
             "completionTimeSeconds": row["completion_time_seconds"],
@@ -503,5 +526,6 @@ def get_user_history(user_id: str) -> "list[dict]":
             # Full connection data so the profile modal can render the solution grid
             "connections": row["connections"],
             "previousGuesses": row["previous_guesses"],
+            "puzzleModifiedSincePlayed": puzzle_modified,
         })
     return history

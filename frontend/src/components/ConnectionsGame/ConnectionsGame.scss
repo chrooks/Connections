@@ -21,6 +21,74 @@ $toast-top-offset: 5rem;
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Admin play-test: row of action buttons shown on the end screen
+.review-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem auto 0;
+  flex-wrap: wrap;
+}
+
+.review-back-button {
+  background: none;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #555;
+  padding: 0.4rem 1rem;
+  transition: color 0.2s, border-color 0.2s;
+
+  &:hover {
+    color: #000;
+    border-color: #000;
+  }
+}
+
+.review-approve-button {
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  transition: background 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #219a52;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.review-reject-button {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  transition: background 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #c0392b;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
 .game {
   display: flex;
   flex-direction: column;

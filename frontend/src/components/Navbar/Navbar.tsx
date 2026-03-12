@@ -8,9 +8,10 @@ import { useAuth } from "../../context/AuthContext";
 interface NavbarProps {
   showLowerNav?: boolean; // Optional prop to control lower navbar visibility
   onNavigateToProfile?: () => void; // Callback to navigate to the profile view
+  onNavigateToAdmin?: () => void; // Callback to navigate to the admin view (admin users only)
 }
 
-const Navbar: React.FC<NavbarProps> = ({ showLowerNav = true, onNavigateToProfile }) => {
+const Navbar: React.FC<NavbarProps> = ({ showLowerNav = true, onNavigateToProfile, onNavigateToAdmin }) => {
   const { user, loading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
@@ -32,7 +33,12 @@ const Navbar: React.FC<NavbarProps> = ({ showLowerNav = true, onNavigateToProfil
               <HelpButton />
 
               {/* Auth section - show user menu when authenticated */}
-              {!loading && user && <UserMenu onNavigateToProfile={onNavigateToProfile} />}
+              {!loading && user && (
+                <UserMenu
+                  onNavigateToProfile={onNavigateToProfile}
+                  onNavigateToAdmin={onNavigateToAdmin}
+                />
+              )}
             </div>
           </div>
         </div>

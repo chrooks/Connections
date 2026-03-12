@@ -17,6 +17,7 @@ import PuzzleTimer from "./PuzzleTimer/PuzzleTimer";
 import ForfeitButton from "./ForfeitButton/ForfeitButton";
 import ForfeitConfirmModal from "./ForfeitConfirmModal/ForfeitConfirmModal";
 import { apiPost } from "../../lib/api";
+import { adminApiPost } from "../../lib/adminApi";
 
 // Type for a connection object from the API
 interface Connection {
@@ -32,13 +33,25 @@ interface GuessHistoryEntry {
   connectionIndex: number | null;  // Which connection (0-3), null if incorrect
 }
 
-const ConnectionsGame: React.FC = () => {
+interface ConnectionsGameProps {
+  /** When set, loads this specific game session instead of calling /generate-grid.
+   *  Used for admin play-test mode to review a specific puzzle. */
+  reviewGameId?: string | null;
+  /** The puzzle being reviewed — used to call approve/reject from the end screen. */
+  reviewPuzzleId?: string;
+  /** Which admin tab the puzzle came from — determines whether to show Approve or Reject. */
+  reviewTab?: "rejected" | "approved";
+  /** Called when the admin clicks "Back to Admin" after a review game ends. */
+  onReviewComplete?: () => void;
+}
+
+const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, reviewPuzzleId, reviewTab, onReviewComplete }) => {
   const [mistakesLeft, setMistakesLeft] = useState<number>(4);
   // Track the order in which connections were solved (array of connection indices)
   const [solvedOrder, setSolvedOrder] = useState<number[]>([]);
   // Track the current grid word order (preserves order after swaps)
   const [gridWords, setGridWords] = useState<string[]>([]);
-  const { words, loading, error, poolExhausted, connections, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef } = useGameState(setMistakesLeft);
+  const { words, loading, error, poolExhausted, connections, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef } = useGameState(setMistakesLeft, reviewGameId);
   const { selectedWords, addWord, clearWords } = useSelectedWords();
   // Animation phase: null = none, "nudge" = initial bump, "swap" = swapping positions, "fade" = fading out
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>(null);
@@ -52,6 +65,8 @@ const ConnectionsGame: React.FC = () => {
   const [isForfeitModalOpen, setIsForfeitModalOpen] = useState<boolean>(false);
   // Track guess history for results visualization
   const [guessHistory, setGuessHistory] = useState<GuessHistoryEntry[]>([]);
+  // Tracks in-flight approve/reject action from the review end screen
+  const [isReviewActioning, setIsReviewActioning] = useState(false);
 
   // Timer: ticks while the game is in progress, resets when a new game starts.
   // `gameId` is used as the reset key — it changes whenever a new session loads.
@@ -251,6 +266,27 @@ const ConnectionsGame: React.FC = () => {
     });
   };
 
+  // Called from the review end screen — approves or rejects the puzzle being tested,
+  // then navigates back to the admin screen.
+  const handleReviewAction = async (action: "approve" | "reject") => {
+    if (!reviewPuzzleId) return;
+    setIsReviewActioning(true);
+    try {
+      const res = await adminApiPost(`/puzzles/${reviewPuzzleId}/${action}`);
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.message ?? "Action failed");
+      }
+      const { toast } = await import("react-toastify");
+      toast.success(`Puzzle ${action === "approve" ? "approved" : "rejected"}`);
+      onReviewComplete?.();
+    } catch (err) {
+      const { toast } = await import("react-toastify");
+      toast.error(err instanceof Error ? err.message : "Action failed");
+      setIsReviewActioning(false);
+    }
+  };
+
   const handleSubmit = async () => {
     console.log('Selected words:', selectedWords);
 
@@ -393,14 +429,48 @@ const ConnectionsGame: React.FC = () => {
       />
       {/* View Results button appears after end screen is ready */}
       {showEndScreen && (
-        <ViewResultsButton onClick={() => setIsResultsModalOpen(true)} />
+        <>
+          <ViewResultsButton onClick={() => setIsResultsModalOpen(true)} />
+          {/* Admin play-test: show Back to Admin + Approve or Reject button */}
+          {onReviewComplete && (
+            <div id="review-actions" className="review-actions">
+              <button
+                id="review-back-button"
+                className="review-back-button"
+                onClick={onReviewComplete}
+              >
+                ← Back to Admin
+              </button>
+              {reviewPuzzleId && reviewTab === "rejected" && (
+                <button
+                  id="review-approve-button"
+                  className="review-approve-button"
+                  onClick={() => handleReviewAction("approve")}
+                  disabled={isReviewActioning}
+                >
+                  {isReviewActioning ? "..." : "✓ Approve"}
+                </button>
+              )}
+              {reviewPuzzleId && reviewTab === "approved" && (
+                <button
+                  id="review-reject-button"
+                  className="review-reject-button"
+                  onClick={() => handleReviewAction("reject")}
+                  disabled={isReviewActioning}
+                >
+                  {isReviewActioning ? "..." : "✗ Reject"}
+                </button>
+              )}
+            </div>
+          )}
+        </>
       )}
       {/* Results modal with emoji grid and share functionality */}
       {gameResult && (
         <ResultsModal
           isOpen={isResultsModalOpen}
           onClose={() => setIsResultsModalOpen(false)}
-          onNextPuzzle={() => { setIsResultsModalOpen(false); startNewGame(); }}
+          onNextPuzzle={reviewGameId ? undefined : () => { setIsResultsModalOpen(false); startNewGame(); }}
           gameResult={gameResult}
           guessHistory={guessHistory}
           connections={connections as Connection[]}

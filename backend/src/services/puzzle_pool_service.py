@@ -434,9 +434,14 @@ def get_rejected_puzzles(
     supabase = _get_client()
     config_id = _get_config_id(supabase, config_name)
 
+    # Single query: PostgREST resource embedding joins puzzle_groups and puzzle_words
+    # server-side, returning nested JSON in one round trip instead of 1+N queries.
     result = (
         supabase.table("puzzles")
-        .select("id, validation_score, validation_report, created_at")
+        .select(
+            "id, validation_score, validation_report, created_at, edited_at, times_served,"
+            "puzzle_groups(category_name, sort_order, puzzle_words(word, display_text))"
+        )
         .eq("config_id", config_id)
         .eq("status", "rejected")
         .order("created_at", desc=True)
@@ -447,24 +452,206 @@ def get_rejected_puzzles(
     puzzles = []
     for row in (result.data or []):
         report = row.get("validation_report") or {}
-        try:
-            connections = _fetch_puzzle_connections(row["id"], supabase)
-        except ValueError:
-            connections = []
-
+        groups = sorted(row.get("puzzle_groups") or [], key=lambda g: g["sort_order"])
         puzzles.append({
             "puzzle_id": row["id"],
             "validation_score": row.get("validation_score"),
             "auto_fail_reasons": report.get("auto_fail_reasons", []),
             "warnings": report.get("warnings", []),
             "created_at": row["created_at"],
+            "edited_at": row.get("edited_at"),
+            "times_served": row.get("times_served", 0),
             "groups": [
-                {"relationship": c["relationship"], "words": c["words"]}
-                for c in connections
+                {
+                    "relationship": g["category_name"],
+                    "words": [pw.get("display_text") or pw["word"] for pw in g["puzzle_words"]],
+                }
+                for g in groups
             ],
         })
 
     return puzzles
+
+
+def get_approved_puzzles(
+    config_name: str = "classic",
+    limit: int = 50,
+) -> list[dict]:
+    """
+    Returns approved puzzles with their content and validation data.
+
+    Mirrors get_rejected_puzzles() but queries status='approved' and includes
+    approved_at so the admin can see when each puzzle entered the pool.
+
+    Args:
+        config_name: Pool config slug to filter by (default "classic").
+        limit:       Maximum number of puzzles to return, most recent first.
+
+    Returns:
+        List of dicts with the same shape as get_rejected_puzzles(), plus
+        an optional "approved_at" field.
+    """
+    supabase = _get_client()
+    config_id = _get_config_id(supabase, config_name)
+
+    result = (
+        supabase.table("puzzles")
+        .select(
+            "id, validation_score, validation_report, approved_at, created_at, edited_at, times_served,"
+            "puzzle_groups(category_name, sort_order, puzzle_words(word, display_text))"
+        )
+        .eq("config_id", config_id)
+        .eq("status", "approved")
+        .order("approved_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+
+    puzzles = []
+    for row in (result.data or []):
+        report = row.get("validation_report") or {}
+        groups = sorted(row.get("puzzle_groups") or [], key=lambda g: g["sort_order"])
+        puzzles.append({
+            "puzzle_id": row["id"],
+            "validation_score": row.get("validation_score"),
+            "auto_fail_reasons": report.get("auto_fail_reasons", []),
+            "warnings": report.get("warnings", []),
+            "approved_at": row.get("approved_at"),
+            "created_at": row["created_at"],
+            "edited_at": row.get("edited_at"),
+            "times_served": row.get("times_served", 0),
+            "groups": [
+                {
+                    "relationship": g["category_name"],
+                    "words": [pw.get("display_text") or pw["word"] for pw in g["puzzle_words"]],
+                }
+                for g in groups
+            ],
+        })
+
+    return puzzles
+
+
+def update_puzzle_content(puzzle_id: str, groups: list[dict]) -> str:
+    """
+    Mutates an existing puzzle's category names and words in-place.
+
+    Intended for admin use when a puzzle needs to be corrected after it was
+    generated. The update is safe to perform on approved puzzles because
+    game_sessions store connections as a JSONB snapshot — editing the source
+    rows in puzzle_groups/puzzle_words has no effect on existing sessions.
+
+    Steps:
+      1. Update puzzle_groups.category_name for each group (matched by sort_order)
+      2. Delete all existing puzzle_words for this puzzle
+      3. Re-insert fresh word rows from the new word lists
+      4. Stamp edited_at = now() and clear stale validation data
+
+    Args:
+        puzzle_id: UUID of the puzzle to update.
+        groups:    List of dicts in difficulty order (index = sort_order):
+                   [{"category_name": str, "words": [str, str, str, str]}, ...]
+
+    Returns:
+        ISO timestamp string of the new edited_at value.
+    """
+    supabase = _get_client()
+    edited_at = datetime.now(timezone.utc).isoformat()
+
+    for sort_order, group in enumerate(groups):
+        category_name = group["category_name"]
+        # Fetch the group row by puzzle_id + sort_order to get its id for word insertion
+        group_result = (
+            supabase.table("puzzle_groups")
+            .select("id")
+            .eq("puzzle_id", puzzle_id)
+            .eq("sort_order", sort_order)
+            .limit(1)
+            .execute()
+        )
+        if not group_result.data:
+            raise ValueError(
+                f"No group found at sort_order={sort_order} for puzzle {puzzle_id}."
+            )
+        group_id = group_result.data[0]["id"]
+
+        # Update category name
+        supabase.table("puzzle_groups").update({
+            "category_name": category_name,
+        }).eq("id", group_id).execute()
+
+        # Delete existing words for this group and re-insert fresh ones
+        supabase.table("puzzle_words").delete().eq("group_id", group_id).execute()
+
+        word_rows = [
+            {
+                "group_id": group_id,
+                "puzzle_id": puzzle_id,
+                "word": word.lower(),
+                "display_text": word,
+            }
+            for word in group["words"]
+        ]
+        supabase.table("puzzle_words").insert(word_rows).execute()
+
+    # Stamp edited_at and clear stale validation data
+    supabase.table("puzzles").update({
+        "edited_at": edited_at,
+        "validation_score": None,
+        "validation_report": None,
+    }).eq("id", puzzle_id).execute()
+
+    logger.info("Admin edited puzzle %s content", puzzle_id)
+    return edited_at
+
+
+def create_manual_puzzle(groups: list[dict], config_name: str = "classic") -> str:
+    """
+    Creates a new puzzle from scratch and immediately approves it.
+
+    Reuses seed_puzzle_to_pool() (status='draft') then immediately calls
+    manually_approve_puzzle() so the new puzzle is eligible for serving right away.
+    Records generation_model='manual' for audit trail.
+
+    Args:
+        groups:      List of dicts [{"category_name": str, "words": [str, ...]}, ...]
+                     in difficulty order (index 0 = easiest).
+        config_name: Pool config slug (default "classic").
+
+    Returns:
+        str: UUID of the newly created puzzle.
+    """
+    puzzle_data = {
+        "config_name": config_name,
+        "connections": [
+            {"relationship": g["category_name"], "words": g["words"]}
+            for g in groups
+        ],
+    }
+    puzzle_id = seed_puzzle_to_pool(puzzle_data, generation_model="manual")
+    manually_approve_puzzle(puzzle_id)
+    logger.info("Admin manually created puzzle %s (config=%s)", puzzle_id, config_name)
+    return puzzle_id
+
+
+def manually_reject_puzzle(puzzle_id: str) -> None:
+    """
+    Demotes an approved puzzle back to rejected status.
+
+    Intended for admin use when a puzzle in the approved pool is found to be
+    problematic after manual review. The existing validation_score and
+    validation_report are preserved for audit purposes.
+
+    Args:
+        puzzle_id: UUID of the puzzle to reject (any status accepted).
+    """
+    supabase = _get_client()
+
+    supabase.table("puzzles").update({
+        "status": "rejected",
+    }).eq("id", puzzle_id).execute()
+
+    logger.info("Admin manually rejected puzzle %s (human override)", puzzle_id)
 
 
 def manually_approve_puzzle(puzzle_id: str) -> None:

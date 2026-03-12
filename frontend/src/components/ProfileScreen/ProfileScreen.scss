@@ -169,3 +169,11 @@
   color: #888;
   font-weight: 600;
 }
+
+// Badge shown on history rows (and the detail modal) when a puzzle was edited
+// after the player completed it. Shared via global cascade; also referenced in
+// GameHistoryModal.tsx which is injected into the same stylesheet scope.
+.history-modified-badge {
+  color: #b7770d;
+  font-size: 0.85em;
+}

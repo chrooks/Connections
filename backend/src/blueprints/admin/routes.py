@@ -13,6 +13,7 @@ import logging
 from flask import Blueprint, request
 
 from ...services.utils import create_response
+from ...auth.middleware import require_admin
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ admin_bp = Blueprint("admin", __name__)
 
 
 @admin_bp.route("/generate-puzzles", methods=["POST"])
+@require_admin
 def queue_puzzle_generation():
     """
     Queue puzzle generation jobs.
@@ -89,6 +91,7 @@ def queue_puzzle_generation():
 
 
 @admin_bp.route("/puzzles/rejected", methods=["GET"])
+@require_admin
 def list_rejected_puzzles():
     """
     List rejected puzzles with their content and validation data.
@@ -135,6 +138,7 @@ def list_rejected_puzzles():
 
 
 @admin_bp.route("/puzzles/<puzzle_id>/start-review-game", methods=["POST"])
+@require_admin
 def start_review_game(puzzle_id: str):
     """
     Create a playable game session from any puzzle, regardless of status.
@@ -178,6 +182,7 @@ def start_review_game(puzzle_id: str):
 
 
 @admin_bp.route("/puzzles/<puzzle_id>/approve", methods=["POST"])
+@require_admin
 def manually_approve_puzzle(puzzle_id: str):
     """
     Human-override: approve a puzzle that the validation pipeline rejected.
@@ -201,3 +206,173 @@ def manually_approve_puzzle(puzzle_id: str):
 
     logger.info("Admin manually approved puzzle %s", puzzle_id)
     return create_response(data={"puzzle_id": puzzle_id, "status": "approved"})
+
+
+@admin_bp.route("/puzzles/approved", methods=["GET"])
+@require_admin
+def list_approved_puzzles():
+    """
+    List approved puzzles with their content and validation data.
+
+    Query params:
+        config_name: str  optional — defaults to "classic"
+        limit:       int  optional — max results, defaults to 50
+
+    Response (200):
+        {
+            "data": {
+                "puzzles": [
+                    {
+                        "puzzle_id":        str,
+                        "validation_score": float | null,
+                        "approved_at":      str,
+                        "created_at":       str,
+                        "groups": [
+                            {"relationship": str, "words": [str, str, str, str]},
+                            ...
+                        ]
+                    },
+                    ...
+                ],
+                "count": int
+            }
+        }
+    """
+    config_name = request.args.get("config_name", "classic")
+    try:
+        limit = int(request.args.get("limit", 50))
+    except ValueError:
+        return create_response(error="'limit' must be an integer", status_code=400)
+
+    from ...services.puzzle_pool_service import get_approved_puzzles
+
+    try:
+        puzzles = get_approved_puzzles(config_name=config_name, limit=limit)
+    except ValueError as e:
+        return create_response(error=str(e), status_code=404)
+
+    return create_response(data={"puzzles": puzzles, "count": len(puzzles)})
+
+
+@admin_bp.route("/puzzles/<puzzle_id>", methods=["PATCH"])
+@require_admin
+def edit_puzzle(puzzle_id: str):
+    """
+    Edit an existing puzzle's category names and words in-place.
+
+    Stamps edited_at and clears stale validation data. Does NOT change status.
+
+    Request body (JSON):
+        {
+            "groups": [
+                {"category_name": str, "words": [str, str, str, str]},
+                ...
+            ]
+        }
+
+    Response (200):
+        {
+            "data": {"puzzle_id": str, "edited_at": str}
+        }
+    """
+    body = request.get_json(silent=True) or {}
+    groups = body.get("groups")
+
+    if not isinstance(groups, list) or not groups:
+        return create_response(error="'groups' must be a non-empty list", status_code=400)
+    for i, g in enumerate(groups):
+        if not isinstance(g, dict) or not isinstance(g.get("category_name"), str) or not isinstance(g.get("words"), list):
+            return create_response(
+                error=f"groups[{i}] must have 'category_name' (str) and 'words' (list)",
+                status_code=400,
+            )
+
+    from ...services.puzzle_pool_service import update_puzzle_content
+
+    try:
+        edited_at = update_puzzle_content(puzzle_id, groups)
+    except ValueError as e:
+        return create_response(error=str(e), status_code=404)
+    except Exception as e:
+        logger.error("Failed to edit puzzle %s: %s", puzzle_id, e)
+        return create_response(error=str(e), status_code=500)
+
+    logger.info("Admin edited puzzle %s", puzzle_id)
+    return create_response(data={"puzzle_id": puzzle_id, "edited_at": edited_at})
+
+
+@admin_bp.route("/puzzles", methods=["POST"])
+@require_admin
+def create_puzzle():
+    """
+    Create a new puzzle from scratch and immediately approve it.
+
+    Request body (JSON):
+        {
+            "groups": [
+                {"category_name": str, "words": [str, str, str, str]},
+                ...
+            ],
+            "config_name": str  optional — defaults to "classic"
+        }
+
+    Response (201):
+        {
+            "data": {"puzzle_id": str, "status": "approved"}
+        }
+    """
+    body = request.get_json(silent=True) or {}
+    groups = body.get("groups")
+    config_name = body.get("config_name", "classic")
+
+    if not isinstance(groups, list) or not groups:
+        return create_response(error="'groups' must be a non-empty list", status_code=400)
+    for i, g in enumerate(groups):
+        if not isinstance(g, dict) or not isinstance(g.get("category_name"), str) or not isinstance(g.get("words"), list):
+            return create_response(
+                error=f"groups[{i}] must have 'category_name' (str) and 'words' (list)",
+                status_code=400,
+            )
+
+    from ...services.puzzle_pool_service import create_manual_puzzle
+
+    try:
+        puzzle_id = create_manual_puzzle(groups, config_name=config_name)
+    except ValueError as e:
+        return create_response(error=str(e), status_code=400)
+    except Exception as e:
+        logger.error("Failed to create manual puzzle: %s", e)
+        return create_response(error=str(e), status_code=500)
+
+    logger.info("Admin created manual puzzle %s", puzzle_id)
+    return create_response(
+        data={"puzzle_id": puzzle_id, "status": "approved"},
+        status_code=201,
+    )
+
+
+@admin_bp.route("/puzzles/<puzzle_id>/reject", methods=["POST"])
+@require_admin
+def manually_reject_puzzle(puzzle_id: str):
+    """
+    Human-override: demote an approved puzzle back to rejected status.
+
+    This does not re-run validation — it unconditionally transitions the puzzle
+    to 'rejected', removing it from the serve pool. The existing validation_score
+    and validation_report are preserved for audit purposes.
+
+    Response (200):
+        {
+            "data": {"puzzle_id": str, "status": "rejected"}
+        }
+    """
+    from ...services.puzzle_pool_service import manually_reject_puzzle as _reject
+
+    try:
+        _reject(puzzle_id)
+    except Exception as e:
+        logger.error("Failed to manually reject puzzle %s: %s", puzzle_id, e)
+        return create_response(error=str(e), status_code=500)
+
+    logger.info("Admin manually rejected puzzle %s", puzzle_id)
+    return create_response(data={"puzzle_id": puzzle_id, "status": "rejected"})
