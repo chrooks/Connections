@@ -380,10 +380,11 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
         setSolvedOrder(prev => [...prev, newlySolvedIndex]);
       }
       clearWords();
-    } else {
-      // Incorrect or duplicate guess: just clear selection
+    } else if (!result?.isNewGuess) {
+      // Duplicate guess: clear so the player knows it was already tried
       clearWords();
     }
+    // Incorrect new guess: keep selection so the player can swap one word and retry
   };
 
   return (
