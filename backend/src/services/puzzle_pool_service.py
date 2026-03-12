@@ -108,6 +108,18 @@ class PlayerExhaustedPoolError(PuzzlePoolEmptyError):
     pass
 
 
+class PuzzleIntegrityError(Exception):
+    """
+    Raised when repeated attempts to fetch a valid puzzle all return malformed
+    data (e.g. a connection with the wrong number of words). Indicates a pool
+    integrity problem that requires admin attention.
+
+    Intentionally does NOT subclass PuzzlePoolEmptyError so it is never
+    silently swallowed by a fallback-to-static handler.
+    """
+    pass
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------

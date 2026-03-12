@@ -33,7 +33,7 @@ from ...services.game_session_service import (
     get_user_history,
     transfer_guest_data,
 )
-from ...services.puzzle_pool_service import PlayerExhaustedPoolError
+from ...services.puzzle_pool_service import PlayerExhaustedPoolError, PuzzleIntegrityError
 from ...auth.middleware import get_optional_user_id, require_auth
 from ...services.utils import parse_and_validate_request, create_response
 from ...extensions import limiter
@@ -90,6 +90,8 @@ def generate_grid():
         game = create_new_game(user_id=user_id, guest_exclude_ids=guest_exclude or None)
     except PlayerExhaustedPoolError:
         return jsonify({"error": "You've completed all available puzzles! Check back soon for more.", "code": "POOL_EXHAUSTED"}), 503
+    except PuzzleIntegrityError:
+        return create_response(error="Could not load a valid puzzle. Our team has been notified.", status_code=500)
 
     if not game:
         return create_response(error="Failed to generate the game grid.", status_code=500)

@@ -135,7 +135,9 @@ def generate_game_grid(
         from ..services.puzzle_pool_service import (
             PuzzlePoolEmptyError,
             PlayerExhaustedPoolError,
+            PuzzleIntegrityError,
             get_puzzle_from_pool,
+            manually_reject_puzzle,
         )
 
         # Build the exclusion list based on who's playing:
@@ -161,10 +163,39 @@ def generate_game_grid(
             exclude_ids = guest_exclude_ids
             logger.info("Guest excluding %d already-completed puzzles", len(exclude_ids))
 
-        connections, puzzle_id = get_puzzle_from_pool(
-            config_name="classic",
-            exclude_puzzle_ids=exclude_ids,
-        )
+        # Retry up to 3 times in case a malformed puzzle is returned from the pool.
+        # Each failure auto-rejects the bad puzzle and excludes it from the next attempt
+        # so we don't draw it again within the same request.
+        _MAX_RETRIES = 3
+        malformed_ids: "list[str]" = []
+        for attempt in range(1, _MAX_RETRIES + 1):
+            connections, puzzle_id = get_puzzle_from_pool(
+                config_name="classic",
+                exclude_puzzle_ids=exclude_ids + malformed_ids,
+            )
+
+            # NOTE: 4 words per connection is the "classic" config assumption. Future
+            # puzzle configs (e.g. 5×4, 6×4) should derive this limit from the config
+            # rather than hardcoding it here.
+            if any(len(conn.get("words", [])) != 4 for conn in connections):
+                logger.error(
+                    "Puzzle %s has malformed connection (attempt %d/%d) — auto-rejecting",
+                    puzzle_id, attempt, _MAX_RETRIES,
+                )
+                try:
+                    manually_reject_puzzle(puzzle_id)
+                except Exception as reject_err:
+                    logger.warning("Failed to auto-reject puzzle %s: %s", puzzle_id, reject_err)
+                malformed_ids.append(puzzle_id)
+                continue
+
+            break  # valid puzzle found
+        else:
+            raise PuzzleIntegrityError(
+                f"All {_MAX_RETRIES} puzzle attempts returned malformed data. "
+                f"Auto-rejected: {malformed_ids}"
+            )
+
         grid = []
         for connection in connections:
             grid.extend(connection["words"])
@@ -188,6 +219,10 @@ def generate_game_grid(
     except PlayerExhaustedPoolError:
         # Player has completed every approved puzzle — propagate so the route
         # can return a "come back later" response instead of serving static JSON.
+        raise
+    except PuzzleIntegrityError:
+        # Repeated malformed puzzles — propagate so the route returns a 500.
+        # Must not fall back to static JSON; the error should be visible.
         raise
     except PuzzlePoolEmptyError:
         # Expected during local development before any puzzles have been seeded
