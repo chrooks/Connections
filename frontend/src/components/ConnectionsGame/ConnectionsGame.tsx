@@ -390,7 +390,10 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
     <div id="connections-game-container" className="game container">
       <ToastContainer position="top-center" theme="dark" hideProgressBar closeButton={false} icon={false} autoClose={1500} />
       {/* Show timer once words are loaded; stays visible (frozen) on end screen */}
-      {words.length > 0 && <PuzzleTimer seconds={elapsedSeconds} />}
+      {loading
+        ? <div id="puzzle-timer-skeleton" className="puzzle-timer-skeleton" />
+        : words.length > 0 && <PuzzleTimer seconds={elapsedSeconds} />
+      }
       <span id="game-instructions" className="game-instructions"> Create four groups of four!</span>
       {/* Render solved connections above the grid */}
       <div id="solved-connections-container" className="solved-connections-container">

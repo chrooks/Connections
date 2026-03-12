@@ -6,3 +6,14 @@
   letter-spacing: 0.05em;
   margin-bottom: 0.25rem;
 }
+
+// Shimmer placeholder shown while the puzzle is loading (matches "00:00" width)
+.puzzle-timer-skeleton {
+  width: 3.5rem;
+  height: 1.1rem;
+  border-radius: 4px;
+  margin: 0 auto 0.25rem;
+  background: linear-gradient(90deg, #e0e0e0 25%, #efefef 50%, #e0e0e0 75%);
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}

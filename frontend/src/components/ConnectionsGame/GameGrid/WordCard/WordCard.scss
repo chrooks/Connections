@@ -59,6 +59,20 @@
   }
 }
 
+// Skeleton shimmer — reuses the same keyframe name as AdminScreen via global scope
+@keyframes skeleton-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.word-card--skeleton {
+  background: linear-gradient(90deg, #e0e0e0 25%, #efefef 50%, #e0e0e0 75%);
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  cursor: default;
+  pointer-events: none;
+}
+
 @media (max-width: 640px) {
   .word-card {
     width: 8rem; // 128px

@@ -88,7 +88,13 @@ const GameGrid: React.FC<GameGridProps> = ({ words, loading, error, poolExhauste
   }, [animationPhase, words, selectedWords]);
 
   if (loading) {
-    return <div id="game-grid-loading">Loading...</div>;
+    return (
+      <div id="game-grid-loading" className="game-grid">
+        {Array.from({ length: 16 }).map((_, i) => (
+          <div key={i} className="word-card word-card--skeleton" />
+        ))}
+      </div>
+    );
   }
 
   if (poolExhausted) {
