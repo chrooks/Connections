@@ -115,6 +115,7 @@ const App: React.FC = () => {
             reviewPuzzleId={reviewPuzzleId ?? undefined}
             reviewTab={reviewTab}
             onReviewComplete={reviewGameId ? handleBackFromReview : undefined}
+            onNavigateToProfile={() => setCurrentView("profile")}
           />
         )}
       </div>

@@ -8,6 +8,7 @@ import ResultsModal from "./ResultsModal/ResultsModal";
 import useGameState from "../../hooks/useGameState";
 import useSubmitGuess from "../../hooks/useSubmitGuess";
 import { useSelectedWords } from "../../context/SelectedWordsContext";
+import { useAuth } from "../../context/AuthContext";
 import { ANIMATION_DURATION, ANIMATION_DELAY, SWAP_DURATION, SWAP_STAGGER, FADE_DURATION } from "../../config/gameConfig";
 import { AnimationPhase } from "./GameGrid/WordCard/WordCard";
 import { ToastContainer } from "react-toastify";
@@ -43,9 +44,12 @@ interface ConnectionsGameProps {
   reviewTab?: "rejected" | "approved";
   /** Called when the admin clicks "Back to Admin" after a review game ends. */
   onReviewComplete?: () => void;
+  /** Navigates to the profile/stats screen — shown on the pool exhausted screen for logged-in users. */
+  onNavigateToProfile?: () => void;
 }
 
-const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, reviewPuzzleId, reviewTab, onReviewComplete }) => {
+const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, reviewPuzzleId, reviewTab, onReviewComplete, onNavigateToProfile }) => {
+  const { user } = useAuth();
   const [mistakesLeft, setMistakesLeft] = useState<number>(4);
   // Track the order in which connections were solved (array of connection indices)
   const [solvedOrder, setSolvedOrder] = useState<number[]>([]);
@@ -430,6 +434,35 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
     }
     // Incorrect or duplicate guess: keep selection so the player can swap one word and retry
   };
+
+  if (poolExhausted) {
+    return (
+      <div id="connections-game-container" className="game container">
+        <ToastContainer position="top-center" theme="dark" hideProgressBar closeButton={false} icon={false} autoClose={1500} />
+        <div id="pool-exhausted-container" className="pool-exhausted-container">
+          <p id="pool-exhausted-emoji" className="pool-exhausted-emoji">🧩</p>
+          <h2 id="pool-exhausted-heading" className="pool-exhausted-heading">You're all caught up!</h2>
+          <p id="pool-exhausted-message" className="pool-exhausted-message">
+            You've completed every available puzzle. Check back soon — new ones are on the way!
+          </p>
+          {user && onNavigateToProfile && (
+            <>
+              <p id="pool-exhausted-stats-prompt" className="pool-exhausted-stats-prompt">
+                In the meantime, check out your stats!
+              </p>
+              <button
+                id="pool-exhausted-profile-button"
+                className="pool-exhausted-profile-button"
+                onClick={onNavigateToProfile}
+              >
+                View My Stats
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="connections-game-container" className="game container">

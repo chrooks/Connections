@@ -29,4 +29,26 @@
     color: #555;
     max-width: 320px;
   }
+
+  .pool-exhausted-stats-prompt {
+    font-size: 0.95rem;
+    color: #555;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .pool-exhausted-profile-button {
+    background-color: #000;
+    color: #fff;
+    border: none;
+    border-radius: 2rem;
+    padding: 0.6rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #333;
+    }
+  }
 }
