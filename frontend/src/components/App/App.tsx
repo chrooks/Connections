@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../Navbar/Navbar";
 import ConnectionsGame from "../ConnectionsGame/ConnectionsGame";
 import LandingPage from "../LandingPage/LandingPage";
@@ -7,7 +7,7 @@ import AdminScreen from "../AdminScreen/AdminScreen";
 import PuzzleEditor from "../AdminScreen/PuzzleEditor";
 import { SelectedWordsProvider } from "../../context/SelectedWordsContext";
 import { useAuth } from "../../context/AuthContext";
-import { isAdminEmail } from "../../lib/adminUtils";
+import { fetchIsAdmin } from "../../lib/adminUtils";
 import { EditableGroup } from "../../types/admin";
 
 // Top-level view — 'profile', 'admin', and 'editor' are only reachable when authenticated
@@ -28,7 +28,17 @@ const App: React.FC = () => {
   const [editorInitialGroups, setEditorInitialGroups] = useState<EditableGroup[] | undefined>(undefined);
   const [editorTimesServed, setEditorTimesServed] = useState<number>(0);
 
-  const isAdmin = isAdminEmail(user?.email);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Fetch admin status from the backend whenever the logged-in user changes.
+  // Resets to false immediately on sign-out so admin UI disappears right away.
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    fetchIsAdmin().then(setIsAdmin);
+  }, [user]);
 
   // Handle playing as guest
   const handlePlayAsGuest = () => {

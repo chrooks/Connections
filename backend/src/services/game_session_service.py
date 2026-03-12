@@ -278,13 +278,30 @@ def transfer_guest_data(
 
     # --- Record completed-puzzle exclusions ---
     if completed_puzzle_ids:
-        rows = [{"user_id": user_id, "puzzle_id": pid} for pid in completed_puzzle_ids]
-        supabase.table("user_puzzle_exclusions").upsert(rows).execute()
-        exclusions_added = len(completed_puzzle_ids)
-        logger.info(
-            "Added %d puzzle exclusion(s) for user %s from guest transfer",
-            exclusions_added, user_id,
+        # Validate that each puzzle ID actually exists in the database before
+        # inserting exclusions — prevents a caller from poisoning their exclusion
+        # list with arbitrary UUIDs they haven't actually played.
+        existing_result = (
+            supabase.table("puzzles")
+            .select("id")
+            .in_("id", completed_puzzle_ids)
+            .execute()
         )
+        valid_ids = {row["id"] for row in (existing_result.data or [])}
+        invalid_ids = set(completed_puzzle_ids) - valid_ids
+        if invalid_ids:
+            logger.warning(
+                "claim-guest-data: ignoring %d unknown puzzle ID(s) for user %s: %s",
+                len(invalid_ids), user_id, invalid_ids,
+            )
+        if valid_ids:
+            rows = [{"user_id": user_id, "puzzle_id": pid} for pid in valid_ids]
+            supabase.table("user_puzzle_exclusions").upsert(rows).execute()
+            exclusions_added = len(valid_ids)
+            logger.info(
+                "Added %d puzzle exclusion(s) for user %s from guest transfer",
+                exclusions_added, user_id,
+            )
 
     return {"claimed_game": claimed_game, "exclusions_added": exclusions_added}
 

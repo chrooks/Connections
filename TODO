@@ -1,9 +1,9 @@
+[ ] - Puzzle quality feedback loop. After completing a puzzle, user can rate puzzle difficulty on a 1-5(7?) scale. If 1 or 5(7), multichoice asking why? (e.g. Erroneous connection, etc.)  
 [X] - Rate limiting (flask-limiter, per-IP on generate-grid & submit-guess, ~60 req/min)
 [X] - game-status strips answers from unguessed connections (game integrity / anti-cheat)  
-[ ] - Remove or load admin email from env var in frontend adminUtils.ts (exposed in bundle)  
-[ ] - Harden debug mode: replace debug=True with os.getenv("FLASK_DEBUG") check in app.py  
-[ ] - Validate completedPuzzleIds against DB in claim-guest-data before inserting exclusions  
-[ ] - Puzzle quality feedback loop. After completing a puzzle, user can rate puzzle difficulty on a 1-5(7?) scale. If 1 or 5(7), multichoice asking why? (e.g. Erroneous connection, etc.)  
+[X] - Remove or load admin email from env var in frontend adminUtils.ts (exposed in bundle)  
+[X] - Harden debug mode: replace debug=True with os.getenv("FLASK_DEBUG") check in app.py  
+[X] - Validate completedPuzzleIds against DB in claim-guest-data before inserting exclusions  
 [X] - Update docs/Readme/CLAUDE.md  
 [X] - Figure out the easiest/cheapest way to deploy and host this lol  
 [X] - Admin mode where I can test and approve puzzles/ optionally see answers & approval scores  

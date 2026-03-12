@@ -185,6 +185,17 @@ def require_admin(f):
     return decorated_function
 
 
+def is_current_user_admin() -> bool:
+    """
+    Returns True if the currently authenticated user's email is in ADMIN_EMAILS.
+
+    Must only be called inside a request context after require_auth has run
+    (i.e., g.user_email is set).
+    """
+    email = getattr(g, "user_email", None)
+    return bool(email and email.lower() in ADMIN_EMAILS)
+
+
 def get_current_user_id():
     """
     Helper function to get the current authenticated user's ID from Flask's g object.

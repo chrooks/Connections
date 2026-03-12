@@ -34,7 +34,7 @@ from ...services.game_session_service import (
     transfer_guest_data,
 )
 from ...services.puzzle_pool_service import PlayerExhaustedPoolError, PuzzleIntegrityError
-from ...auth.middleware import get_optional_user_id, require_auth
+from ...auth.middleware import get_optional_user_id, require_auth, is_current_user_admin
 from ...services.utils import parse_and_validate_request, create_response
 from ...extensions import limiter
 
@@ -61,6 +61,20 @@ def _sanitize_game_state(game: dict) -> dict:
         for conn in game.get("connections", [])
     ]
     return {**game, "connections": sanitized_connections}
+
+
+@api_bp.route("/me/is-admin", methods=["GET"])
+@require_auth
+@limiter.limit("30 per minute")
+def me_is_admin():
+    """
+    Returns whether the currently authenticated user has admin privileges.
+
+    Only tells the caller about themselves — never leaks which emails are admins.
+    Used by the frontend to show/hide admin UI without baking email addresses
+    into the client bundle.
+    """
+    return create_response(data={"is_admin": is_current_user_admin()})
 
 
 @api_bp.route("/generate-grid", methods=["GET"])

@@ -5,7 +5,7 @@
  * (puzzles currently in the serve pool). Admins can reveal answers, play-test
  * any puzzle, and approve/reject individual puzzles.
  *
- * Only reachable when the user's email is in VITE_ADMIN_EMAILS (checked in App.tsx).
+ * Only reachable when the user has is_admin=true in their Supabase app_metadata (checked in App.tsx).
  * All API calls are further guarded by the backend's require_admin decorator.
  */
 
