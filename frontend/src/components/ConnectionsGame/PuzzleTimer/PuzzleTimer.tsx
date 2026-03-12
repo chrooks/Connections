@@ -10,9 +10,12 @@ interface PuzzleTimerProps {
  * Receives the current second count from ConnectionsGame.
  */
 const PuzzleTimer: React.FC<PuzzleTimerProps> = ({ seconds }) => {
-  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = seconds % 60;
-  const formatted = `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+  const formatted = hours > 0
+    ? `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
+    : `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 
   return (
     <div id="puzzle-timer" className="puzzle-timer">
