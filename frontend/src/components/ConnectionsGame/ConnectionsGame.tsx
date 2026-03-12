@@ -51,7 +51,7 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
   const [solvedOrder, setSolvedOrder] = useState<number[]>([]);
   // Track the current grid word order (preserves order after swaps)
   const [gridWords, setGridWords] = useState<string[]>([]);
-  const { words, loading, error, poolExhausted, connections, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef } = useGameState(setMistakesLeft, reviewGameId);
+  const { words, loading, error, poolExhausted, connections, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef, initialPreviousGuessesRef } = useGameState(setMistakesLeft, reviewGameId);
   const { selectedWords, addWord, clearWords } = useSelectedWords();
   // Animation phase: null = none, "nudge" = initial bump, "swap" = swapping positions, "fade" = fading out
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>(null);
@@ -91,7 +91,20 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
       // setWords was called in fetchGameState, so by the time this effect runs
       // it always holds the value for the current game (never the previous one).
       setSolvedOrder(initialSolvedIndicesRef.current);
-      setGuessHistory([]);
+      // Reconstruct guess history from server data so the results modal shows
+      // all guesses even after a page refresh. correctness is derived by checking
+      // whether all 4 words in a past guess belong to the same connection group.
+      const restoredHistory = initialPreviousGuessesRef.current.map(guess => {
+        const matchingIdx = (connections as Connection[]).findIndex(
+          conn => guess.every(w => conn.words.includes(w))
+        );
+        return {
+          guess,
+          isCorrect: matchingIdx !== -1,
+          connectionIndex: matchingIdx !== -1 ? matchingIdx : null,
+        };
+      });
+      setGuessHistory(restoredHistory);
       setGameComplete(false);
       setGameResult(null);
       setShowEndScreen(false);
@@ -380,11 +393,8 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
         setSolvedOrder(prev => [...prev, newlySolvedIndex]);
       }
       clearWords();
-    } else if (!result?.isNewGuess) {
-      // Duplicate guess: clear so the player knows it was already tried
-      clearWords();
     }
-    // Incorrect new guess: keep selection so the player can swap one word and retry
+    // Incorrect or duplicate guess: keep selection so the player can swap one word and retry
   };
 
   return (

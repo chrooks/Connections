@@ -31,6 +31,7 @@ from ...services.game_session_service import (
     forfeit_game,
     get_user_stats,
     get_user_history,
+    transfer_guest_data,
 )
 from ...services.puzzle_pool_service import PlayerExhaustedPoolError
 from ...auth.middleware import get_optional_user_id, require_auth
@@ -50,8 +51,19 @@ def generate_grid():
     guest requests (no token) create an unowned session.
     """
     user_id = get_optional_user_id()
+
+    # Guests may supply a comma-separated list of already-completed puzzle IDs via
+    # the ?exclude= query param so the pool skips them — mirrors the server-side
+    # exclusion used for authenticated users.  Auth users ignore this param since
+    # their exclusion list is derived from the database.
+    guest_exclude: "list[str]" = []
+    if not user_id:
+        raw_exclude = request.args.get("exclude", "")
+        if raw_exclude:
+            guest_exclude = [pid.strip() for pid in raw_exclude.split(",") if pid.strip()]
+
     try:
-        game = create_new_game(user_id=user_id)
+        game = create_new_game(user_id=user_id, guest_exclude_ids=guest_exclude or None)
     except PlayerExhaustedPoolError:
         return jsonify({"error": "You've completed all available puzzles! Check back soon for more.", "code": "POOL_EXHAUSTED"}), 503
 
@@ -230,3 +242,40 @@ def user_history():
     """
     history = get_user_history(g.user_id)
     return create_response(data={"history": history})
+
+
+@api_bp.route("/claim-guest-data", methods=["POST"])
+@require_auth
+def claim_guest_data():
+    """
+    Transfers guest session data to the authenticated user's account after
+    sign-up or sign-in.  Two operations:
+
+      1. Claim active game — sets user_id on the unclaimed game_sessions row so
+         the user can continue their in-progress game. Skipped if the user
+         already has an active game.
+
+      2. Record completed-puzzle exclusions — inserts the puzzle IDs the guest
+         already played into user_puzzle_exclusions so the pool never re-serves
+         them to this user.
+
+    Body:
+      { "activeGameId": "<uuid>" | null,
+        "completedPuzzleIds": ["<uuid>", ...] }
+    """
+    data = request.get_json(silent=True) or {}
+    active_game_id = data.get("activeGameId")
+    completed_puzzle_ids = data.get("completedPuzzleIds", [])
+
+    # Basic validation: completedPuzzleIds must be a list of strings
+    if not isinstance(completed_puzzle_ids, list) or not all(
+        isinstance(pid, str) for pid in completed_puzzle_ids
+    ):
+        return create_response(error="completedPuzzleIds must be a list of strings", status_code=400)
+
+    result = transfer_guest_data(
+        user_id=g.user_id,
+        active_game_id=active_game_id if isinstance(active_game_id, str) else None,
+        completed_puzzle_ids=completed_puzzle_ids,
+    )
+    return create_response(data=result)

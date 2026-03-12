@@ -93,6 +93,7 @@ def _row_to_state(row: dict) -> dict:
         "status":          row["status"],           # already a plain string
         "previousGuesses": row["previous_guesses"],
         "puzzleNumber":    row["puzzle_number"],
+        "puzzleId":        row.get("puzzle_id"),    # None for static-fallback games
     }
 
 
@@ -197,14 +198,19 @@ def get_active_game_for_user(user_id: str) -> "str | None":
 
 def get_completed_puzzle_ids_for_user(user_id: str) -> "list[str]":
     """
-    Returns the puzzle_ids for all completed (WIN or LOSS) game sessions
-    belonging to this user where a pool puzzle was served (puzzle_id IS NOT NULL).
+    Returns all puzzle IDs this user should not be served again.
+
+    Sources (union of both):
+      1. Completed (WIN or LOSS) game_sessions rows — real games the user played.
+      2. user_puzzle_exclusions rows — puzzles the user played as a guest that
+         were transferred to their account when they signed up/in.
 
     Used by generate_game_grid to exclude already-played puzzles so a player
     is never served the same puzzle twice.
     """
     supabase = _get_client()
-    result = (
+
+    games_result = (
         supabase.table("game_sessions")
         .select("puzzle_id")
         .eq("user_id", user_id)
@@ -212,7 +218,75 @@ def get_completed_puzzle_ids_for_user(user_id: str) -> "list[str]":
         .filter("puzzle_id", "not.is", "null")
         .execute()
     )
-    return [row["puzzle_id"] for row in result.data]
+    excl_result = (
+        supabase.table("user_puzzle_exclusions")
+        .select("puzzle_id")
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    ids: set[str] = {row["puzzle_id"] for row in games_result.data}
+    ids.update(row["puzzle_id"] for row in excl_result.data)
+    return list(ids)
+
+
+def transfer_guest_data(
+    user_id: str,
+    active_game_id: "str | None",
+    completed_puzzle_ids: "list[str]",
+) -> dict:
+    """
+    Transfers guest session data to an authenticated user account.
+
+    Two operations:
+      1. Claim the active guest game session: sets user_id on the unclaimed
+         game_sessions row so it becomes the user's current IN_PROGRESS game.
+         Skipped if the user already has an active game (existing progress wins).
+      2. Record completed puzzle exclusions: inserts rows into
+         user_puzzle_exclusions so puzzles played as a guest are not re-served.
+         Uses upsert to silently handle duplicates.
+
+    Returns a dict with "claimed_game" (bool) and "exclusions_added" (int).
+    """
+    supabase = _get_client()
+    claimed_game = False
+    exclusions_added = 0
+
+    # --- Claim the active game session ---
+    if active_game_id:
+        # Only transfer if the user has no existing IN_PROGRESS game; their
+        # existing progress should not be clobbered by the guest session.
+        existing_active = get_active_game_for_user(user_id)
+        if not existing_active:
+            result = (
+                supabase.table("game_sessions")
+                .update({"user_id": user_id})
+                .eq("id", active_game_id)
+                .is_("user_id", "null")   # safety: only claim un-owned sessions
+                .execute()
+            )
+            claimed_game = bool(result.data)
+            logger.info(
+                "Claimed guest game %s for user %s: %s",
+                active_game_id, user_id, claimed_game,
+            )
+        else:
+            logger.info(
+                "User %s already has active game %s — not overwriting with guest game %s",
+                user_id, existing_active, active_game_id,
+            )
+
+    # --- Record completed-puzzle exclusions ---
+    if completed_puzzle_ids:
+        rows = [{"user_id": user_id, "puzzle_id": pid} for pid in completed_puzzle_ids]
+        supabase.table("user_puzzle_exclusions").upsert(rows).execute()
+        exclusions_added = len(completed_puzzle_ids)
+        logger.info(
+            "Added %d puzzle exclusion(s) for user %s from guest transfer",
+            exclusions_added, user_id,
+        )
+
+    return {"claimed_game": claimed_game, "exclusions_added": exclusions_added}
 
 
 def check_guess(

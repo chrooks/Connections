@@ -1,6 +1,7 @@
 import React, { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUserPlus } from "@fortawesome/free-solid-svg-icons";
 import SettingsButton from "./SettingsButton";
-import HelpButton from "./HelpButton";
 import AuthModal from "../Auth/AuthModal";
 import UserMenu from "../Auth/UserMenu";
 import { useAuth } from "../../context/AuthContext";
@@ -30,14 +31,24 @@ const Navbar: React.FC<NavbarProps> = ({ showLowerNav = true, onNavigateToProfil
           <div className="container">
             <div id="nav-buttons" className="nav-buttons">
               <SettingsButton />
-              <HelpButton />
 
-              {/* Auth section - show user menu when authenticated */}
+              {/* Auth section - show user menu when authenticated, sign-up button for guests */}
               {!loading && user && (
                 <UserMenu
                   onNavigateToProfile={onNavigateToProfile}
                   onNavigateToAdmin={onNavigateToAdmin}
                 />
+              )}
+              {!loading && !user && (
+                <button
+                  id="navbar-signup-button"
+                  className="user-menu-icon"
+                  onClick={() => setShowAuthModal(true)}
+                  aria-label="Sign up or sign in"
+                  title="Sign up / Sign in"
+                >
+                  <FontAwesomeIcon icon={faUserPlus} />
+                </button>
               )}
             </div>
           </div>

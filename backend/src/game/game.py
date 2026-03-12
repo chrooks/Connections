@@ -98,7 +98,10 @@ def validate_id(game_id):
     return check_game_exists(game_id)
 
 
-def generate_game_grid(user_id: "str | None" = None) -> "tuple[list[str], list[dict], str | None]":
+def generate_game_grid(
+    user_id: "str | None" = None,
+    guest_exclude_ids: "list[str] | None" = None,
+) -> "tuple[list[str], list[dict], str | None]":
     """
     Generates the game grid and connections using a pool-first strategy.
 
@@ -107,6 +110,8 @@ def generate_game_grid(user_id: "str | None" = None) -> "tuple[list[str], list[d
          The pool is the primary source once puzzles have been seeded and approved.
          For authenticated users, puzzles they have already completed (WIN or LOSS)
          are excluded so they never receive a repeat.
+         For guests, an optional client-supplied exclusion list (sourced from
+         localStorage) is used to avoid serving the same puzzle twice.
       2. Fall back to the static connections.json when the pool is empty (expected
          during local dev before any puzzles are seeded) or unavailable (network
          error, missing env vars, etc.).
@@ -114,6 +119,9 @@ def generate_game_grid(user_id: "str | None" = None) -> "tuple[list[str], list[d
     :param user_id: The authenticated player's UUID, or None for guests. When
                     provided, already-completed puzzle IDs are fetched and passed
                     to the pool so the player is never served a repeat.
+    :param guest_exclude_ids: Optional list of puzzle IDs to exclude for guest
+                    sessions. Ignored when user_id is set (auth users use the
+                    server-side completed-puzzle list instead).
     :return: A tuple of (grid, connections, puzzle_id) where:
              - grid is a shuffled list of 16 word strings
              - connections is a list of dicts: [{relationship, words, guessed}, ...]
@@ -130,8 +138,10 @@ def generate_game_grid(user_id: "str | None" = None) -> "tuple[list[str], list[d
             get_puzzle_from_pool,
         )
 
-        # For authenticated users, exclude puzzles they've already completed.
-        # Errors here are non-fatal — we log and fall through to an unrestricted fetch.
+        # Build the exclusion list based on who's playing:
+        #   - Auth users: query the DB for their completed puzzle IDs (ground truth).
+        #   - Guests: use the client-supplied list from localStorage (best-effort).
+        # Errors on the auth path are non-fatal — log and fall through to no exclusions.
         exclude_ids: "list[str]" = []
         if user_id:
             try:
@@ -147,6 +157,9 @@ def generate_game_grid(user_id: "str | None" = None) -> "tuple[list[str], list[d
                     "serving without exclusions",
                     user_id, e,
                 )
+        elif guest_exclude_ids:
+            exclude_ids = guest_exclude_ids
+            logger.info("Guest excluding %d already-completed puzzles", len(exclude_ids))
 
         connections, puzzle_id = get_puzzle_from_pool(
             config_name="classic",
@@ -225,7 +238,10 @@ def process_guess(game_id: str, guess: "list[str]") -> "tuple[dict, bool, bool, 
     return game_state, is_valid, is_correct, is_new, is_one_away, ""
 
 
-def create_new_game(user_id: "str | None" = None) -> dict:
+def create_new_game(
+    user_id: "str | None" = None,
+    guest_exclude_ids: "list[str] | None" = None,
+) -> dict:
     """
     Get-or-create: for authenticated users, returns the existing IN_PROGRESS
     game session rather than creating a new one on every call. This is what
@@ -235,6 +251,8 @@ def create_new_game(user_id: "str | None" = None) -> dict:
     handles persistence via localStorage for single-device continuity.
 
     :param user_id: The Supabase auth user UUID, or None for guest sessions.
+    :param guest_exclude_ids: Puzzle IDs to skip when picking a puzzle for a guest.
+                    Sourced from the guest's localStorage; ignored for auth users.
     :return: The game state dict (existing or newly created).
     """
     if user_id:
@@ -246,7 +264,10 @@ def create_new_game(user_id: "str | None" = None) -> dict:
             )
             return get_game_from_db(existing_id)
 
-    grid, connections, puzzle_id = generate_game_grid(user_id=user_id)
+    grid, connections, puzzle_id = generate_game_grid(
+        user_id=user_id,
+        guest_exclude_ids=guest_exclude_ids,
+    )
     game_id = add_new_game(grid, connections, user_id=user_id, puzzle_id=puzzle_id)
     return get_game_from_db(game_id)
 

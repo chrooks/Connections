@@ -1,7 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import Modal from "react-modal";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../context/AuthContext";
+import AuthModal from "../../Auth/AuthModal";
 import "./ResultsModal.scss";
 
 // Type for a connection object from the API
@@ -44,6 +45,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
   completionTimeSeconds
 }) => {
   const { user } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Determine result title based on performance
   const resultTitle = useMemo(() => {
@@ -138,10 +140,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
           <button
             id="results-create-account-button"
             className="create-account-button"
-            onClick={() => {
-              // TODO: Open auth modal - will need to pass this handler from parent
-              console.log('Open auth modal');
-            }}
+            onClick={() => setShowAuthModal(true)}
           >
             Create a free account
           </button>
@@ -172,6 +171,12 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
           </button>
         )}
       </div>
+
+      {/* Auth modal opened by "Create a free account" — mounted here to avoid prop drilling */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </Modal>
   );
 };
