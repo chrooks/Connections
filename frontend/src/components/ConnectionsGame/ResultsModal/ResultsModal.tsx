@@ -71,7 +71,7 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
     return guessHistory.map(entry => {
       // For each word in the guess, find which connection it belongs to and show that emoji
       return entry.guess.map(word => {
-        const connIdx = connections.findIndex(conn => conn.words.includes(word));
+        const connIdx = connections.findIndex(conn => conn.words?.includes(word));
         return emojiMap[connIdx] || '⬜'; // Fallback to white square if not found
       }).join('');
     }).join('\n');

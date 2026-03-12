@@ -307,7 +307,12 @@ const useGameState = (
     });
   };
 
-  return { words, loading, error, poolExhausted, connections, shuffleWords, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef, initialPreviousGuessesRef };
+  /** Replaces a single stripped connection with its full data after a correct guess. */
+  const revealConnection = (index: number, connection: any) => {
+    setConnections(prev => prev.map((conn, i) => i === index ? connection : conn));
+  };
+
+  return { words, loading, error, poolExhausted, connections, revealConnection, shuffleWords, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef, initialPreviousGuessesRef };
 };
 
 export default useGameState;

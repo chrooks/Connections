@@ -51,7 +51,7 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
   const [solvedOrder, setSolvedOrder] = useState<number[]>([]);
   // Track the current grid word order (preserves order after swaps)
   const [gridWords, setGridWords] = useState<string[]>([]);
-  const { words, loading, error, poolExhausted, connections, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef, initialPreviousGuessesRef } = useGameState(setMistakesLeft, reviewGameId);
+  const { words, loading, error, poolExhausted, connections, revealConnection, gameId, puzzleNumber, startNewGame, initialSolvedIndicesRef, initialPreviousGuessesRef } = useGameState(setMistakesLeft, reviewGameId);
   const { selectedWords, addWord, clearWords } = useSelectedWords();
   // Animation phase: null = none, "nudge" = initial bump, "swap" = swapping positions, "fade" = fading out
   const [animationPhase, setAnimationPhase] = useState<AnimationPhase>(null);
@@ -96,7 +96,7 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
       // whether all 4 words in a past guess belong to the same connection group.
       const restoredHistory = initialPreviousGuessesRef.current.map(guess => {
         const matchingIdx = (connections as Connection[]).findIndex(
-          conn => guess.every(w => conn.words.includes(w))
+          conn => conn.words && guess.every(w => conn.words.includes(w))
         );
         return {
           guess,
@@ -111,9 +111,13 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
     }
   }, [words]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Get solved connections in the order they were guessed (not by difficulty)
+  // Get solved connections in the order they were guessed (not by difficulty).
+  // Filter out any stripped connections (no words) that may appear briefly during
+  // puzzle transitions before solvedOrder resets to match the new game.
   const solvedConnections = useMemo(() => {
-    return solvedOrder.map(index => (connections as Connection[])[index]);
+    return solvedOrder
+      .map(index => (connections as Connection[])[index])
+      .filter(conn => conn?.words);
   }, [connections, solvedOrder]);
 
   // Filter out words that belong to solved connections (use gridWords to preserve order)
@@ -154,8 +158,26 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
 
   // Auto-reveal unsolved connections when game ends in loss
   const autoRevealConnections = async () => {
+    // The game is now LOSS/FORFEIT, so /game-status returns full connection data.
+    // Fetch it to replace the stripped local state before running the animation.
+    let fullConnections = connections as Connection[];
+    if (gameId) {
+      try {
+        const res = await apiPost("/game-status", { gameId });
+        const json = await res.json();
+        if (json.data?.connections) {
+          fullConnections = json.data.connections;
+          json.data.connections.forEach((conn: any, idx: number) => {
+            if (conn.words) revealConnection(idx, conn);
+          });
+        }
+      } catch {
+        // Fall back to local state; animation may be incomplete
+      }
+    }
+
     // Get unsolved connection indices in difficulty order (0-3 = yellow, green, blue, purple)
-    const unsolvedIndices = (connections as Connection[])
+    const unsolvedIndices = fullConnections
       .map((conn, idx) => ({ conn, idx }))
       .filter(({ idx }) => !solvedOrder.includes(idx))
       .map(({ idx }) => idx)
@@ -169,12 +191,12 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
 
     // Reveal each connection sequentially
     for (const connIdx of unsolvedIndices) {
-      const connection = (connections as Connection[])[connIdx];
+      const connection = fullConnections[connIdx];
       const targetWords = connection.words;
 
       // Calculate which remaining words we're working with
       const currentSolvedWords = new Set(
-        currentSolvedOrder.map(idx => (connections as Connection[])[idx].words).flat()
+        currentSolvedOrder.map(idx => fullConnections[idx].words).flat()
       );
       const currentRemainingWords = currentGridWords.filter(word => !currentSolvedWords.has(word));
 
@@ -248,11 +270,16 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
     setIsForfeitModalOpen(false);
     if (!gameId) return;
     try {
-      await apiPost("/forfeit-game", { gameId });
+      const res = await apiPost("/forfeit-game", { gameId });
+      if (!res.ok) {
+        // 409 means the game already ended naturally — treat as a normal loss
+        setGameComplete(true);
+        setGameResult('LOSS');
+        return;
+      }
     } catch (err) {
       console.error("Failed to record forfeit:", err);
     }
-    // Treat forfeit as a game-ending event — same path as a natural loss
     setGameComplete(true);
     setGameResult('FORFEIT');
   };
@@ -390,6 +417,13 @@ const ConnectionsGame: React.FC<ConnectionsGameProps> = ({ reviewGameId = null, 
         (guessed, idx) => guessed && !solvedOrder.includes(idx)
       );
       if (newlySolvedIndex !== -1) {
+        // Reveal the full connection data before updating solvedOrder.
+        // game-status strips unguessed connections to prevent cheating, so the
+        // local connections state has no data for this index yet. The backend
+        // returns the solved connection in the submit-guess response for exactly this.
+        if (result.solvedConnection) {
+          revealConnection(newlySolvedIndex, result.solvedConnection);
+        }
         setSolvedOrder(prev => [...prev, newlySolvedIndex]);
       }
       clearWords();

@@ -9,6 +9,7 @@ export interface SubmitGuessResult {
   isNewGuess: boolean;
   isOneAway: boolean;
   guessedConnections: boolean[];
+  solvedConnection?: any; // Full connection data returned when isCorrect, to reveal in local state
 }
 
 /**
@@ -84,6 +85,7 @@ const useSubmitGuess = (
           isNewGuess: responseData.isNewGuess,
           isOneAway: responseData.isOneAway,
           guessedConnections: responseData.gameState.guessedConnections,
+          solvedConnection: responseData.solvedConnection,
         };
       }
       return null;

@@ -142,6 +142,18 @@ def submit_guess():
         "isNewGuess": is_new,
         "isOneAway": is_one_away,
     }
+
+    if is_correct:
+        # Return the full solved connection so the frontend can reveal it in its
+        # local state. game-status strips unguessed connections to prevent cheating,
+        # so without this the frontend would have no data to render SolvedConnection.
+        guess_set = set(guess)
+        solved = next(
+            (conn for conn in game_state["connections"] if set(conn.get("words", [])) == guess_set),
+            None,
+        )
+        response_data["solvedConnection"] = solved
+
     return create_response(data=response_data)
 
 
