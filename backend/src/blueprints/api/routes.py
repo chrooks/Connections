@@ -21,7 +21,6 @@ from flask import Blueprint, jsonify, request, g
 from ...game.game import (
     create_new_game,
     get_game_state,
-    get_all_games_data,
     process_guess,
     validate_id,
     restart_game,
@@ -29,6 +28,7 @@ from ...game.game import (
 from ...services.game_session_service import (
     record_completion_time,
     forfeit_game,
+    get_game_owner,
     get_user_stats,
     get_user_history,
     transfer_guest_data,
@@ -157,6 +157,14 @@ def restart():
         return create_response(error="Invalid game ID.", status_code=404)
 
     user_id = get_optional_user_id()
+    owner_id = get_game_owner(game_id)
+    # If owner_id is None the game belongs to a guest — we can't verify ownership
+    # because guests have no session or token, only a gameId in localStorage.
+    # Authenticated games (owner_id set) are fully protected; guest games accept
+    # the residual risk since game IDs are UUIDs and the /get-game-data leak is closed.
+    if owner_id and owner_id != user_id:
+        return create_response(error="Forbidden", status_code=403)
+
     try:
         game = restart_game(game_id, user_id=user_id)
     except PlayerExhaustedPoolError:
@@ -180,6 +188,11 @@ def forfeit():
     game_id = data["gameId"]
     if not validate_id(game_id):
         return create_response(error="Invalid game ID.", status_code=404)
+
+    user_id = get_optional_user_id()
+    owner_id = get_game_owner(game_id)
+    if owner_id and owner_id != user_id:
+        return create_response(error="Forbidden", status_code=403)
 
     success = forfeit_game(game_id)
     if not success:
@@ -205,21 +218,17 @@ def record_time():
     if not validate_id(game_id):
         return create_response(error="Invalid game ID.", status_code=404)
 
+    user_id = get_optional_user_id()
+    owner_id = get_game_owner(game_id)
+    if owner_id and owner_id != user_id:
+        return create_response(error="Forbidden", status_code=403)
+
     time_seconds = data["timeSeconds"]
     if not isinstance(time_seconds, int) or time_seconds < 0:
         return create_response(error="timeSeconds must be a non-negative integer.", status_code=400)
 
     record_completion_time(game_id, time_seconds)
     return create_response(data={"recorded": True})
-
-
-@api_bp.route("/get-game-data", methods=["GET"])
-def get_all_game_data():
-    """
-    Returns the game statuses of all games in the database.
-    """
-    games_data = get_all_games_data()
-    return create_response(data={"games": games_data})
 
 
 @api_bp.route("/user/stats", methods=["GET"])

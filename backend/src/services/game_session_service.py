@@ -515,6 +515,20 @@ def get_all_games() -> "list[dict]":
     return [_row_to_state(row) for row in result.data]
 
 
+def get_game_owner(game_id: str) -> "str | None":
+    """
+    Returns the user_id of the game session, or None if the game is a guest
+    session or does not exist.
+
+    Used by routes to verify that the caller owns the game before allowing
+    mutating operations (forfeit, restart, record-completion-time).
+    """
+    row = _fetch_game_row(game_id)
+    if row is None:
+        return None
+    return row.get("user_id")
+
+
 def get_user_stats(user_id: str) -> dict:
     """
     Returns aggregate stats for an authenticated user across all completed games.

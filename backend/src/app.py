@@ -34,7 +34,12 @@ from .services.utils import create_response
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    allowed_origins = [
+        o.strip()
+        for o in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+        if o.strip()
+    ]
+    CORS(app, origins=allowed_origins)
     app.register_blueprint(api_bp, url_prefix="/connections")
     app.register_blueprint(admin_bp, url_prefix="/admin")
 

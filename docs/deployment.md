@@ -63,6 +63,10 @@ docker run --env-file .env connections-worker
 | `SUPABASE_KEY` | `service_role` key (bypasses RLS for server-side ops) |
 | `SUPABASE_JWT_SECRET` | Used by `auth/middleware.py` to validate user JWTs |
 | `ADMIN_EMAILS` | Comma-separated list of emails allowed to hit `/admin/*` |
+| `CORS_ORIGINS` | Comma-separated list of allowed frontend origins — **must be set in production** |
+
+> **Important:** Set `CORS_ORIGINS` to your Vercel frontend URL (e.g. `https://your-app.vercel.app`).
+> If this is missing, the API defaults to `localhost` only and the deployed frontend will be blocked by CORS.
 
 `ANTHROPIC_API_KEY` and `DATABASE_URL` are **not** needed by the API container.
 
