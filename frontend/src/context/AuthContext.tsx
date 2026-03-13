@@ -87,6 +87,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        // Redirect to the current origin so confirmation links work in both
+        // local dev and production without hardcoding a URL
+        emailRedirectTo: window.location.origin,
+      },
     });
     return { error };
   };
