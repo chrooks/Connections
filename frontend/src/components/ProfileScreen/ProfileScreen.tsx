@@ -35,9 +35,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
   // Clicking a history row sets this to open the detail modal
   const [selectedEntry, setSelectedEntry] = useState<GameHistoryEntry | null>(null);
 
-  // Derive display name from email prefix (e.g. "chrooks" from "chrooks@example.com")
-  const username = user?.email?.split("@")[0] ?? "Player";
-
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
@@ -72,7 +69,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
 
   return (
     <div id="profile-screen" className="profile-screen">
-      {/* Header with back button and username */}
+      {/* Header with back button */}
       <div id="profile-header" className="profile-header">
         <button
           id="profile-back-button"
