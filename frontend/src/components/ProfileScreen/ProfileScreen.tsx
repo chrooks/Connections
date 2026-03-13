@@ -27,7 +27,6 @@ function formatTime(seconds: number): string {
 }
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ onBack }) => {
-  const { user } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [history, setHistory] = useState<GameHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
