@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSelectedWords } from "../../../../context/SelectedWordsContext";
 import { ANIMATION_DURATION } from "../../../../config/gameConfig";
 
@@ -25,6 +25,7 @@ const WordCard: React.FC<WordCardProps> = ({ word, gridIndex: _gridIndex, animat
   const isSelected = selectedWords.includes(word);
   const [currentAnimation, setCurrentAnimation] = useState<AnimationPhase>(null);
   const [swapOffset, setSwapOffset] = useState<{ x: number; y: number } | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Handle nudge animation (only for selected cards)
@@ -47,12 +48,17 @@ const WordCard: React.FC<WordCardProps> = ({ word, gridIndex: _gridIndex, animat
       const toRow = Math.floor(toIndex / 4);
       const toCol = toIndex % 4;
 
-      // Card dimensions: ~9.875rem width (9.375 + 0.5 margin), ~5.5rem height (5 + 0.5 margin)
-      const cardWidth = 9.875; // rem
-      const cardHeight = 5.5; // rem
+      // Measure actual card + gap dimensions from the DOM so this works at any screen size
+      const el = cardRef.current;
+      const rect = el?.getBoundingClientRect();
+      const gridGap = el?.parentElement
+        ? parseFloat(getComputedStyle(el.parentElement).columnGap) || 0
+        : 0;
+      const cellWidth = (rect?.width ?? 150) + gridGap;
+      const cellHeight = (rect?.height ?? 80) + gridGap;
 
-      const xOffset = (toCol - fromCol) * cardWidth;
-      const yOffset = (toRow - fromRow) * cardHeight;
+      const xOffset = (toCol - fromCol) * cellWidth;
+      const yOffset = (toRow - fromRow) * cellHeight;
 
       // Start swap animation after staggered delay
       const startTimer = setTimeout(() => {
@@ -102,7 +108,7 @@ const WordCard: React.FC<WordCardProps> = ({ word, gridIndex: _gridIndex, animat
   // Build inline styles for swap transform
   const style: React.CSSProperties = {};
   if (swapOffset && currentAnimation === "swap") {
-    style.transform = `translate(${swapOffset.x}rem, ${swapOffset.y}rem)`;
+    style.transform = `translate(${swapOffset.x}px, ${swapOffset.y}px)`;
   }
 
   // Generate a unique ID for the word card based on the word content
@@ -111,6 +117,7 @@ const WordCard: React.FC<WordCardProps> = ({ word, gridIndex: _gridIndex, animat
   return (
     <div
       id={wordId}
+      ref={cardRef}
       className={classNames}
       onClick={handleClick}
       style={style}

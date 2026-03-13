@@ -19,6 +19,20 @@
         font-size: 1.25rem;
         color: $black;
       }
+
+      @media (max-width: 480px) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        .connections-logo {
+          margin-right: 0;
+        }
+
+        .version-logo {
+          font-size: 1rem;
+        }
+      }
     }
   }
 

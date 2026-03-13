@@ -1,8 +1,16 @@
 .game-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  // Rows auto-size based on content - no fixed row count
-  grid-auto-rows: auto;
+  grid-auto-rows: 5rem; // fixed row height enforces uniform card size
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 39.5rem;
+
+  @media (max-width: 480px) {
+    // Row height = column width = (grid-width - 3 gaps) / 4
+    // grid-width ≈ 100vw - 0.5rem padding each side - 3×0.5rem gaps = 100vw - 2.5rem
+    grid-auto-rows: calc((100vw - 2.5rem) / 4);
+  }
 }
 
 .pool-exhausted-container {
