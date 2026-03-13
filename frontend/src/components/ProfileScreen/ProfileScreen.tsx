@@ -9,7 +9,6 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
 import { apiGet } from "../../lib/api";
 import { UserStats, GameHistoryEntry } from "../../types/profile";
 import GameHistoryModal from "./GameHistoryModal";
