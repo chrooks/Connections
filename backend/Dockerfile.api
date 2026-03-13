@@ -23,4 +23,4 @@ EXPOSE 8000
 
 # gunicorn spawns 2 worker processes and calls create_app() to build the Flask app.
 # Adjust --workers based on available CPUs (2 × CPU + 1 is a common rule of thumb).
-CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:8000", "src.app:create_app()"]
+CMD gunicorn --workers 2 --bind "0.0.0.0:${PORT:-8000}" "src.app:create_app()"
