@@ -5,5 +5,4 @@ export const SWAP_STAGGER = 200; // Delay between each swap starting
 export const FADE_DURATION = 200; // Duration for cards fading out after swap
 export const POP_DURATION = 300; // Duration for solved connection pop animation
 
-export const BASE_URL = "http://localhost:5000/connections";
-export const GAME_ID = "64cbc900-bd56-4cfa-9ece-eaaae6f2d03f";
+export const BASE_URL = `${(import.meta.env.VITE_API_URL as string) ?? "http://localhost:5000"}/connections`;

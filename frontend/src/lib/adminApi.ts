@@ -9,9 +9,7 @@
 
 import { supabase } from "./supabase";
 
-const ADMIN_BASE_URL =
-  (import.meta.env.VITE_ADMIN_BASE_URL as string) ??
-  "http://localhost:5000/admin";
+const ADMIN_BASE_URL = `${(import.meta.env.VITE_API_URL as string) ?? "http://localhost:5000"}/admin`;
 
 /**
  * Makes an authenticated request to an admin endpoint.
