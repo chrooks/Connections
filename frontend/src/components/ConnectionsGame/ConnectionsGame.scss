@@ -7,6 +7,10 @@ $toast-top-offset: 5rem;
   top: $toast-top-offset !important;
   // Shrink the container to hug the toast content width
   width: fit-content !important;
+  // Re-assert centering — react-toastify's mobile breakpoint resets left:0 and
+  // removes the transform, which leaves a fit-content container left-aligned
+  left: 50% !important;
+  transform: translateX(-50%) !important;
 }
 
 .Toastify__toast {
@@ -14,6 +18,7 @@ $toast-top-offset: 5rem;
   width: fit-content;
   min-width: unset;
   text-align: center;
+  border-radius: 0.5rem !important;
 }
 
 .Toastify__toast-body {
@@ -94,18 +99,27 @@ $toast-top-offset: 5rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 0 1rem;
+
+  @media (max-width: 480px) {
+    padding: 0 0.5rem;
+  }
 
   .game-instructions {
     font-size: 1.125rem;
     color: $black;
     margin: 0.8rem 0;
+
+    @media (max-width: 480px) {
+      font-size: 1rem;
+    }
   }
 
-  // Container for solved connection rows
+  // Matches game-grid max-width so solved rows align with the card grid
   .solved-connections-container {
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 39.5rem; // Match approximate grid width (4 cards * 9.875rem)
+    max-width: 39.5rem;
   }
 }

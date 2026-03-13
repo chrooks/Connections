@@ -1,4 +1,10 @@
 .button-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+
   button {
     border: 1.5px solid $black;
     background-color: $white;
@@ -7,7 +13,7 @@
     font-size: 1rem;
     font-weight: 500;
     padding: 0.8rem 0.75rem;
-    margin: 0 0.5rem;
+    margin: 0;
 
     &.button-unprimed {
       border-color: $unselected-button;

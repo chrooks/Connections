@@ -1,11 +1,11 @@
 .word-card {
-  width: 9.375rem; // 150px
-  height: 5rem; // 80px
+  width: 100%;  // fills its 1fr grid column
+  height: 100%; // fills the fixed grid row — grid enforces uniform size
+  overflow: hidden; // prevent text from ever pushing past the cell boundary
   border-radius: 0.25rem;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 0.25rem; // 8px
   font-size: 1.25rem; // 20px
   font-weight: 700;
   text-transform: uppercase;
@@ -75,14 +75,12 @@
 
 @media (max-width: 640px) {
   .word-card {
-    width: 8rem; // 128px
-    font-size: 1rem; // 16px
+    font-size: 1rem;
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 480px) {
   .word-card {
-    width: 7.25rem; // 116px
-    height: 7.25rem; // 116px
+    font-size: 0.8rem;
   }
 }
