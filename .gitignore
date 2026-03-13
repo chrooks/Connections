@@ -19,4 +19,4 @@ backend/src/generation/puzzle_gen_*.json
 # Validation pipeline run outputs — local debug artifacts, not source
 backend/validation_runs/
 
-.learning/
+# .learning/

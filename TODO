@@ -1,4 +1,5 @@
 [ ] - Puzzle quality feedback loop. After completing a puzzle, user can rate puzzle difficulty on a 1-5(7?) scale. If 1 or 5(7), multichoice asking why? (e.g. Erroneous connection, etc.)  
+[X] - Make frontend more responsive
 [X] - Rate limiting (flask-limiter, per-IP on generate-grid & submit-guess, ~60 req/min)
 [X] - game-status strips answers from unguessed connections (game integrity / anti-cheat)  
 [X] - Remove or load admin email from env var in frontend adminUtils.ts (exposed in bundle)  

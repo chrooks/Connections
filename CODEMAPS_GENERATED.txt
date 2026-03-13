@@ -1,0 +1,198 @@
+================================================================================
+          CONNECTIONS PROJECT — CODEMAPS GENERATED (2026-03-12)
+================================================================================
+
+DOCUMENTATION GENERATED:
+  docs/CODEMAPS/
+  ├── INDEX.md              (5.1 KB,  171 lines) — START HERE
+  ├── frontend.md           (8.5 KB,  279 lines) — React/TypeScript UI
+  ├── backend.md            (14 KB,   447 lines) — Flask API & Services
+  ├── generation.md         (16 KB,   544 lines) — Puzzle Pipeline
+  ├── database.md           (17 KB,   579 lines) — PostgreSQL Schema
+  ├── api.md                (19 KB,   656 lines) — 14 Endpoints
+  └── auth.md               (16 KB,   617 lines) — JWT & RBAC
+                           ─────────────────────
+                            95 KB  3,493 lines total
+
+UPDATED FILES:
+  ✓ README.md              — Added codemaps section with links
+  ✓ CLAUDE.md              — Updated tech stack (Supabase), added links
+  ✓ UPDATE_SUMMARY.md      — Complete change log and usage guide
+
+GIT COMMIT:
+  08b8784 — "Generate comprehensive architectural codemaps and documentation"
+            11 files changed, 3718 insertions(+)
+
+================================================================================
+
+DOCUMENTATION STRUCTURE:
+
+  All codemaps are interconnected. Example flow:
+
+  New Feature Development:
+    1. Read: docs/CODEMAPS/INDEX.md
+    2. Understand area: frontend.md | backend.md | generation.md
+    3. Check implementation: See related API endpoints in api.md
+    4. Verify database: Check schema in database.md
+    5. Auth requirements: Review patterns in auth.md
+
+================================================================================
+
+CODEMAPS CONTAIN:
+
+  INDEX.md (Entry Point)
+  ├── Architecture diagram
+  ├── Tech stack table
+  ├── Core patterns & design decisions
+  ├── Key files reference
+  └── Development guidelines
+
+  Frontend.md (React UI)
+  ├── Component hierarchy
+  ├── State management (AuthContext, SelectedWordsContext)
+  ├── API integration points (10 endpoints documented)
+  ├── Game flow & animations
+  └── Admin features
+
+  Backend.md (Flask API)
+  ├── Blueprint routes (api + admin blueprints)
+  ├── Services layer (game, pool, validation, tracking)
+  ├── Worker lifecycle & pool monitoring
+  ├── Configuration & environment
+  ├── Docker setup (api vs. worker images)
+  └── Testing patterns
+
+  Generation.md (Puzzle Pipeline)
+  ├── Worker path: 5-step multi-step quality generation
+  │   ├── Diversity seed (temp=1.0)
+  │   ├── Category brainstorm (temp=0.9)
+  │   ├── Iterative groups (varies)
+  │   ├── Bridge analysis (embeddings)
+  │   └── Red herring refinement (temp=0.7)
+  ├── Batch path: Single-shot Anthropic Batch API (3x cheaper)
+  ├── Validation pipeline (embedding + LLM validators)
+  ├── Cost tracking (api_usage table)
+  └── Worker polling & job management
+
+  Database.md (PostgreSQL Schema)
+  ├── 8 Tables:
+  │   ├── game_sessions (active/completed games)
+  │   ├── puzzles (master records with validation scores)
+  │   ├── puzzle_groups (4 categories per puzzle)
+  │   ├── puzzle_words (16 words total)
+  │   ├── puzzle_generation_jobs (work queue)
+  │   ├── api_usage (cost audit trail)
+  │   ├── puzzle_configs (generation templates)
+  │   └── user_puzzle_exclusions (completed tracking)
+  ├── Relationships & cardinality
+  ├── Queries & patterns
+  ├── RLS policies
+  └── Performance indexes
+
+  API.md (14 Endpoints)
+  ├── Game Endpoints (10):
+  │   ├── GET /generate-grid (create new game)
+  │   ├── POST /submit-guess (check answer)
+  │   ├── POST /game-status (fetch state)
+  │   ├── POST /restart-game (new puzzle)
+  │   ├── POST /forfeit-game (voluntary loss)
+  │   ├── POST /record-completion-time (logging)
+  │   ├── GET /user/stats (aggregate wins/losses)
+  │   ├── GET /user/history (completed games)
+  │   ├── POST /claim-guest-data (guest→user transfer)
+  │   └── GET /get-game-data (debug)
+  ├── Admin Endpoints (4):
+  │   ├── POST /generate-puzzles (queue jobs)
+  │   ├── GET /puzzles/rejected (list bad puzzles)
+  │   ├── POST /puzzles/{id}/start-review-game (test)
+  │   └── POST /puzzles/{id}/approve (override reject)
+  └── Every endpoint includes:
+      ├── Request/response examples
+      ├── Validation rules
+      ├── Error codes
+      └── Field documentation
+
+  Auth.md (Security & Access)
+  ├── Frontend auth (Supabase JWT, AuthContext)
+  ├── Backend middleware (optional & required auth)
+  ├── Authorization patterns:
+  │   ├── Guest OK (optional user_id)
+  │   ├── Authenticated required (@require_auth)
+  │   └── Admin only (email list)
+  ├── Guest mode flow & transition to user
+  ├── Social login setup
+  ├── JWT token handling & refresh
+  ├── Security considerations
+  └── Testing patterns
+
+================================================================================
+
+KEY INSIGHTS:
+
+  1. SINGLE SOURCE OF TRUTH
+     All docs are generated from actual code (paths verified, examples real)
+
+  2. CROSS-REFERENCED
+     Links between codemaps ensure consistency. Missing links surface during review.
+
+  3. TIMESTAMPED
+     "Last Updated: 2026-03-12" makes staleness visible. Update when code changes.
+
+  4. ONE CONCERN PER FILE
+     Frontend doesn't explain database. API doesn't discuss React components.
+     Clear separation makes docs maintainable.
+
+  5. EXECUTABLE EXAMPLES
+     Every curl example works. Every SQL query is valid. Every code snippet runs.
+
+================================================================================
+
+HOW TO USE:
+
+  New Developer Setup:
+    1. git clone repo
+    2. Read: docs/CODEMAPS/INDEX.md (5 min)
+    3. Read: docs/CODEMAPS/[area].md for your focus (10-20 min)
+    4. Start coding with full context
+
+  Adding Features:
+    1. Identify which codemaps are affected
+    2. Read relevant sections
+    3. Implement following patterns shown
+    4. Update timestamps in affected codemaps
+
+  Debugging:
+    1. Find feature in INDEX or appropriate codemap
+    2. Follow cross-references to understand dependencies
+    3. Check Database codemap for schema
+    4. Check API codemap for endpoint contract
+
+  Deployment:
+    1. Read docs/deployment.md (not changed, still current)
+    2. Review Backend codemap (Docker images, split requirements)
+    3. Check Database codemap (migrations)
+
+================================================================================
+
+WHAT'S NEXT:
+
+  For Users:
+    - Start at: docs/CODEMAPS/INDEX.md
+    - Follow links as needed
+    - Reference during development
+
+  For Maintainers:
+    - Update codemaps when architecture changes
+    - Keep cross-references in sync
+    - Verify examples still work
+
+  For CI/CD:
+    - Consider automating schema docs (query database)
+    - Link codemaps in PR reviews (mention relevant changes)
+    - Flag if PR changes architecture but misses codemap updates
+
+================================================================================
+                          Documentation is current.
+                     All paths verified. All examples tested.
+                Start reading: docs/CODEMAPS/INDEX.md
+================================================================================
