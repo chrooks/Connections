@@ -46,6 +46,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onPlayAsGuest }) => {
             Playing as a guest? Your progress won't be saved.
           </p>
         </div>
+
+        <p id="landing-disclaimer" className="landing-disclaimer">
+          This is a personal project built to explore whether NYT Connections-style puzzles can be
+          generated using LLMs. Puzzle quality may vary — I'm continuously working on improving
+          generation and validation, so please be nice!
+        </p>
       </div>
 
       {/* Auth modal for login/signup */}
