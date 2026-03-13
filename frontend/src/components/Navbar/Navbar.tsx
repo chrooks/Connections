@@ -21,7 +21,7 @@ const Navbar: React.FC<NavbarProps> = ({ showLowerNav = true, onNavigateToProfil
       <div id="navbar-upper" className="navbar-upper">
         <div className="container">
             <span id="connections-logo" className="connections-logo">Connections</span>
-            <span id="version-logo" className="version-logo">Chrooked Version</span>
+            <span id="version-logo" className="version-logo">Chrooked Edition</span>
         </div>
       </div>
 
